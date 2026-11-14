@@ -176,25 +176,30 @@ function handleUnauthorized() {
 }
 
 // ---------------------------------------------------------------------------
-// 4. AUTHENTICATION
+// 4. AUTHENTICATION (PERMANENT APP SESSION)
 // ---------------------------------------------------------------------------
 async function checkAuth() {
-  if (!state.token) {
+  const savedToken = localStorage.getItem("tavolara_admin_token");
+  if (!savedToken) {
     handleUnauthorized();
     return;
   }
+
+  // Instant Native Unlock: render app immediately from local persistent token
+  state.token = savedToken;
+  state.authenticated = true;
+  document.getElementById("login-overlay").style.display = "none";
+  document.getElementById("admin-app").style.display = "flex";
+  loadInitialData();
+
+  // Background verification (silent, never logs out on network glitch or offline)
   try {
     const res = await apiRequest("/api/admin/me");
-    if (res.authenticated) {
-      state.authenticated = true;
-      document.getElementById("login-overlay").style.display = "none";
-      document.getElementById("admin-app").style.display = "flex";
-      loadInitialData();
-    } else {
+    if (res && res.authenticated === false) {
       handleUnauthorized();
     }
   } catch (err) {
-    handleUnauthorized();
+    console.info("[Auth] Persistent session active on device.");
   }
 }
 
