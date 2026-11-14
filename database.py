@@ -8,15 +8,32 @@ import os
 import json
 import hashlib
 import secrets
+import shutil
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "data", "tavolara_orders.db")
+ORIGINAL_DB_PATH = os.path.join(os.path.dirname(__file__), "data", "tavolara_orders.db")
+DB_PATH = ORIGINAL_DB_PATH
+
+def get_db_path():
+    if os.environ.get("VERCEL"):
+        tmp_db = "/tmp/tavolara_orders.db"
+        if not os.path.exists(tmp_db) and os.path.exists(ORIGINAL_DB_PATH):
+            try:
+                shutil.copy2(ORIGINAL_DB_PATH, tmp_db)
+            except Exception as e:
+                print("[Database] Errore copia DB in /tmp:", e)
+        return tmp_db
+    return ORIGINAL_DB_PATH
 
 def get_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH, timeout=30.0)
+    db_file = get_db_path()
+    os.makedirs(os.path.dirname(db_file), exist_ok=True)
+    conn = sqlite3.connect(db_file, timeout=30.0)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL;")
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+    except Exception:
+        pass
     conn.execute("PRAGMA foreign_keys=ON;")
     return conn
 
