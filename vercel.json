@@ -2,18 +2,12 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/sw.js", "destination": "/static/sw.js" },
-    { "source": "/manifest.json", "destination": "/static/manifest.json" },
-    { "source": "/css/(.*)", "destination": "/static/css/$1" },
-    { "source": "/js/(.*)", "destination": "/static/js/$1" },
-    { "source": "/assets/(.*)", "destination": "/static/assets/$1" },
-    { "source": "/admin", "destination": "/static/admin.html" },
-    { "source": "/admin/(.*)", "destination": "/static/admin.html" },
-    { "source": "/gestionale", "destination": "/static/admin.html" },
-    { "source": "/dashboard", "destination": "/static/admin.html" },
-    { "source": "/ordina", "destination": "/static/index.html" },
-    { "source": "/ordine/(.*)", "destination": "/static/index.html" },
-    { "source": "/", "destination": "/static/index.html" }
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/admin/(.*)", "destination": "/admin.html" },
+    { "source": "/gestionale", "destination": "/admin.html" },
+    { "source": "/dashboard", "destination": "/admin.html" },
+    { "source": "/ordina", "destination": "/index.html" },
+    { "source": "/ordine/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {

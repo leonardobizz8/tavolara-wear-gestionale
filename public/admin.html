@@ -1,0 +1,1328 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tavolara Wear — Gestionale Finanziario & Business Hub</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#F8F7F4">
+
+  <link rel="icon" href="/assets/favicon-48.png" sizes="48x48">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Tavolara Wear">
+  
+  <!-- Claude Editorial Typography Fonts (Newsreader Serif + Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/css/admin.css">
+  
+  <!-- Local self-contained Chart.js -->
+  <script src="/js/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ============================================================== -->
+  <!-- 1. LOGIN OVERLAY (APPLE GLASS MODAL) -->
+  <!-- ============================================================== -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-badge-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+      </div>
+      <h2 class="login-title">Tavolara Wear</h2>
+      <p class="login-subtitle">Gestionale Finanziario & Business Hub Riservato ai Soci</p>
+
+      <form id="login-form" action="javascript:void(0);" onsubmit="return false;">
+        <div class="login-input-group">
+          <label class="login-input-label" for="admin-pwd">Password di Amministrazione</label>
+          <input type="password" id="admin-pwd" class="apple-input" placeholder="••••••••••••" required autocomplete="current-password">
+        </div>
+        <p id="login-error" class="login-error"></p>
+        <button type="submit" class="apple-btn apple-btn-primary" style="width: 100%; padding: 12px;" id="btn-login">
+          Accedi al Gestionale
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 2. MAIN APPLICATION SHELL -->
+  <!-- ============================================================== -->
+  <div id="admin-app" class="app-layout" style="display: none;">
+
+    <!-- ------------------------------------------------------------ -->
+    <!-- SIDEBAR -->
+    <!-- ------------------------------------------------------------ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-monogram">TW</div>
+        <div class="sidebar-brand-info">
+          <span class="sidebar-brand-name">Tavolara Wear</span>
+          <span class="sidebar-brand-tagline">Gestionale Finanziario</span>
+        </div>
+      </div>
+
+      <div class="sidebar-content">
+        <!-- Core Financial Navigation -->
+        <div>
+          <div class="sidebar-section-title">Gestionale Principale</div>
+          <nav class="sidebar-nav-group">
+            <a class="sidebar-link active" data-view="overview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+              <span>Overview</span>
+            </a>
+
+            <a class="sidebar-link" data-view="attivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+              <span>Attivo (Entrate)</span>
+              <span class="sidebar-badge" id="side-badge-incomes">0</span>
+            </a>
+
+            <a class="sidebar-link" data-view="passivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+              <span>Passivo (Uscite)</span>
+              <span class="sidebar-badge" id="side-badge-expenses">0</span>
+            </a>
+
+            <a class="sidebar-link" data-view="insights">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+              <span>Insights & Analytics</span>
+            </a>
+          </nav>
+        </div>
+
+        <!-- Operations & Store Navigation -->
+        <div>
+          <div class="sidebar-section-title">Operatività & Negozio</div>
+          <nav class="sidebar-nav-group">
+            <a class="sidebar-link" data-view="orders">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              <span>Ordini Clienti</span>
+              <span class="sidebar-badge" id="side-badge-orders">0</span>
+            </a>
+
+            <a class="sidebar-link" data-view="config">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Impostazioni & Stock</span>
+            </a>
+          </nav>
+        </div>
+
+        <!-- Quick Actions Card inside Sidebar -->
+        <div style="margin-top: auto; padding-top: 10px;">
+          <!-- Supabase Connection Widget -->
+          <div class="glass-card" style="padding: 12px 14px; margin-bottom: 10px;" id="sidebar-supabase-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand-navy); letter-spacing: 0.5px;">Database Supabase</span>
+              <span class="status-pill incassata" style="font-size: 10px; padding: 2px 6px;" id="side-supabase-badge">Attivo</span>
+            </div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="side-supabase-project">Tavolara Wear</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="side-supabase-status">Centralizzato · Cloud RLS</div>
+          </div>
+
+          <!-- Excel Live Connection Widget -->
+          <div class="glass-card" style="padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: transform 0.15s ease;" id="sidebar-excel-card" title="Clicca per gestire il file Excel collegato">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand-navy); letter-spacing: 0.5px;">Excel Collegato</span>
+              <span class="status-pill incassata" style="font-size: 10px; padding: 2px 6px;" id="side-excel-badge">Live</span>
+            </div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="side-excel-filename">tavolara_ordini_live.xlsx</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="side-excel-stats">58 ordini · 1.420 €</div>
+          </div>
+
+          <a href="/" target="_blank" class="apple-btn apple-btn-secondary apple-btn-sm" style="width: 100%; justify-content: space-between; margin-bottom: 8px;">
+            <span>↗ Modulo Clienti</span>
+            <span style="font-size: 11px; opacity: 0.6;">Online</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-user-avatar">TW</div>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">Soci Tavolara Wear</span>
+            <span class="sidebar-user-status">Connesso</span>
+          </div>
+        </div>
+        <button type="button" class="apple-btn apple-btn-ghost apple-btn-sm" id="btn-logout" style="width: 100%; justify-content: flex-start;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Disconnetti
+        </button>
+      </div>
+    </aside>
+
+    <!-- ------------------------------------------------------------ -->
+    <!-- MAIN CONTENT VIEWPORT -->
+    <!-- ------------------------------------------------------------ -->
+    <div class="main-wrapper">
+      
+      <!-- Top Sticky Bar -->
+      <header class="top-header">
+        <div class="header-left">
+          <button type="button" class="mobile-menu-toggle" id="mobile-toggle">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="header-title-group">
+            <h1 class="header-title" id="page-title">Overview Finanziaria</h1>
+            <span class="header-subtitle" id="page-subtitle">Quadro economico consolidato Tavolara Wear</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Time Range Segmented Control -->
+          <div class="segmented-control" id="time-filter-control">
+            <button type="button" class="segment-item" data-period="today">Oggi</button>
+            <button type="button" class="segment-item" data-period="week">Settimana</button>
+            <button type="button" class="segment-item" data-period="month">Mese</button>
+            <button type="button" class="segment-item" data-period="quarter">Trimestre</button>
+            <button type="button" class="segment-item" data-period="year">Anno</button>
+            <button type="button" class="segment-item active" data-period="all">Tutto</button>
+            <button type="button" class="segment-item" data-period="custom">📅 Date</button>
+          </div>
+
+          <!-- Custom Date Pickers (Shown when custom active) -->
+          <div class="custom-date-box" id="custom-date-box">
+            <input type="date" id="custom-date-start" title="Data inizio">
+            <span style="color: var(--text-muted); font-size: 11px;">→</span>
+            <input type="date" id="custom-date-end" title="Data fine">
+            <button type="button" class="apple-btn apple-btn-ice apple-btn-sm" id="btn-apply-custom-date">Applica</button>
+          </div>
+
+          <!-- Excel Sync Pill Button -->
+          <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-open-excel-modal" title="Stato collegamento file Excel">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--olive); display: inline-block;" id="header-excel-dot"></span>
+            <span id="header-excel-label">Excel: 58 Ordini</span>
+          </button>
+
+          <!-- Quick Action Buttons -->
+          <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm" id="btn-quick-add-income">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Entrata
+          </button>
+
+          <button type="button" class="apple-btn apple-btn-rose apple-btn-sm" id="btn-quick-add-expense">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Spesa
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Area -->
+      <main class="dashboard-content">
+
+        <!-- ======================================================== -->
+        <!-- VIEW 1: OVERVIEW -->
+        <!-- ======================================================== -->
+        <section id="view-overview" class="view-section active">
+          
+          <!-- 4 Hero KPI Cards -->
+          <div class="kpi-hero-grid">
+            <!-- Totale Entrate -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Totale Entrate</span>
+                <div class="kpi-icon-pill emerald">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value emerald-val" id="ov-total-incomes">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="ov-incomes-sub">Incassate: € 0,00</span>
+                <span class="kpi-badge positive" id="ov-incomes-badge">Attivo</span>
+              </div>
+            </div>
+
+            <!-- Totale Uscite -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Totale Uscite</span>
+                <div class="kpi-icon-pill rose">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value rose-val" id="ov-total-expenses">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="ov-expenses-sub">4 categorie monitorate</span>
+                <span class="kpi-badge negative" id="ov-expenses-badge">Passivo</span>
+              </div>
+            </div>
+
+            <!-- Saldo Attuale -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Saldo Attuale</span>
+                <div class="kpi-icon-pill navy">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="ov-current-balance">€ 0,00</div>
+              <div class="kpi-footer">
+                <span>Entrate − Uscite</span>
+                <span class="kpi-badge" id="ov-balance-badge">Netto</span>
+              </div>
+            </div>
+
+            <!-- Utile Lordo -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Utile Lordo</span>
+                <div class="kpi-icon-pill amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="ov-gross-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="ov-gross-margin">Margine: 0.0%</span>
+                <span class="kpi-badge positive" id="ov-margin-badge">Produzione</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Secondary KPI Cards -->
+          <div class="kpi-secondary-grid">
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+              </div>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Magliette Vendute</span>
+                <span class="kpi-subcard-val" id="ov-shirts-sold">0</span>
+              </div>
+            </div>
+
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Ordini Ricevuti</span>
+                <span class="kpi-subcard-val" id="ov-orders-count">0</span>
+              </div>
+            </div>
+
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="18" x2="12" y2="20"/><line x1="12" y1="4" x2="12" y2="6"/></svg>
+              </div>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Costo Medio / Maglietta</span>
+                <span class="kpi-subcard-val" id="ov-avg-shirt-cost">€ 0,00</span>
+              </div>
+            </div>
+
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Ricavo Medio / Ordine</span>
+                <span class="kpi-subcard-val" id="ov-avg-order-rev">€ 0,00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Modern Gradient Charts Grid -->
+          <div class="charts-grid-2x2">
+            <!-- Chart 1: Entrate e Uscite nel Tempo -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Entrate e Uscite nel Tempo</h3>
+                  <span class="chart-subtitle">Confronto flussi di cassa giornalieri</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-cashflow"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 2: Andamento del Saldo -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Andamento del Saldo</h3>
+                  <span class="chart-subtitle">Evoluzione cumulativa del patrimonio netto</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-balance"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 3: Distribuzione delle Spese per Categoria -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Distribuzione Spese per Categoria</h3>
+                  <span class="chart-subtitle">Trasporto, Imballaggio, Prove, Magliette</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-expenses-cat"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 4: Andamento delle Vendite -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Andamento Vendite Magliette</h3>
+                  <span class="chart-subtitle">Volume capi venduti nel tempo</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-sales"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 2: ATTIVO (ENTRATE) -->
+        <!-- ======================================================== -->
+        <section id="view-attivo" class="view-section">
+          <!-- Incomes Summary Bar -->
+          <div class="kpi-hero-grid">
+            <div class="glass-card kpi-card">
+              <span class="kpi-label">Totale Entrate Registrate</span>
+              <div class="kpi-value emerald-val" id="inc-sum-total">€ 0,00</div>
+              <span class="kpi-footer" id="inc-sum-count">0 movimenti</span>
+            </div>
+
+            <div class="glass-card kpi-card">
+              <span class="kpi-label">Effettivamente Incassate</span>
+              <div class="kpi-value" id="inc-sum-collected" style="color: var(--emerald);">€ 0,00</div>
+              <span class="kpi-footer">Bonifici verificati & incassati</span>
+            </div>
+
+            <div class="glass-card kpi-card">
+              <span class="kpi-label">In Attesa di Accredito</span>
+              <div class="kpi-value" id="inc-sum-pending" style="color: var(--amber);">€ 0,00</div>
+              <span class="kpi-footer">Pagamenti non ancora riscontrati</span>
+            </div>
+
+            <div class="glass-card kpi-card">
+              <span class="kpi-label">Confermate</span>
+              <div class="kpi-value" id="inc-sum-confirmed" style="color: var(--brand-ice);">€ 0,00</div>
+              <span class="kpi-footer">Ordini approvati dai soci</span>
+            </div>
+          </div>
+
+          <!-- Table Card with Toolbar -->
+          <div class="glass-card table-card">
+            <div class="table-toolbar">
+              <!-- Search box -->
+              <div class="table-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="incomes-search" placeholder="Cerca descrizione, ordine, metodo...">
+              </div>
+
+              <!-- Status filter pills -->
+              <div class="segmented-control" id="incomes-status-filter">
+                <button type="button" class="segment-item active" data-status="all">Tutte</button>
+                <button type="button" class="segment-item" data-status="Incassata">Incassate</button>
+                <button type="button" class="segment-item" data-status="In attesa">In attesa</button>
+                <button type="button" class="segment-item" data-status="Confermata">Confermate</button>
+              </div>
+
+              <!-- Actions -->
+              <div class="table-actions">
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-sync-orders-income">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  Sincronizza da Ordini
+                </button>
+
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-incomes-csv">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Esporta CSV
+                </button>
+
+                <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm" id="btn-add-income">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Nuova Entrata
+                </button>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="apple-table-wrapper">
+              <table class="apple-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrizione</th>
+                    <th>Rif. Ordine</th>
+                    <th>Metodo</th>
+                    <th>Stato</th>
+                    <th style="text-align: right;">Importo</th>
+                    <th>Note</th>
+                    <th style="text-align: center;">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="incomes-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 3: PASSIVO (USCITE & SPESE) -->
+        <!-- ======================================================== -->
+        <section id="view-passivo" class="view-section">
+          
+          <!-- Category Selector (Apple Segmented Bar) -->
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div class="segmented-control" id="expenses-category-tabs" style="padding: 5px;">
+              <button type="button" class="segment-item active" data-cat="all">Tutte le Spese</button>
+              <button type="button" class="segment-item" data-cat="trasporto">🚚 Trasporto</button>
+              <button type="button" class="segment-item" data-cat="imballaggio">📦 Imballaggio</button>
+              <button type="button" class="segment-item" data-cat="prove">🧪 Prove & Sviluppo</button>
+              <button type="button" class="segment-item" data-cat="magliette">👕 Magliette</button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-expenses-csv">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Esporta CSV
+              </button>
+
+              <button type="button" class="apple-btn apple-btn-rose apple-btn-sm" id="btn-add-expense">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span id="btn-add-expense-text">Registra Spesa</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Category Metrics Cards -->
+          <div class="kpi-hero-grid" id="expenses-metrics-grid">
+            <div class="glass-card kpi-card">
+              <span class="kpi-label">Totale Speso Sezione</span>
+              <div class="kpi-value rose-val" id="exp-metric-total">€ 0,00</div>
+              <span class="kpi-footer" id="exp-metric-count">0 registrazioni</span>
+            </div>
+
+            <div class="glass-card kpi-card">
+              <span class="kpi-label" id="exp-metric-kpi2-label">Trasporto Totale</span>
+              <div class="kpi-value" id="exp-metric-kpi2-val">€ 0,00</div>
+              <span class="kpi-footer" id="exp-metric-kpi2-sub">Spedizioni corrieri</span>
+            </div>
+
+            <div class="glass-card kpi-card">
+              <span class="kpi-label" id="exp-metric-kpi3-label">Imballaggio Totale</span>
+              <div class="kpi-value" id="exp-metric-kpi3-val">€ 0,00</div>
+              <span class="kpi-footer" id="exp-metric-kpi3-sub">Scatole & packaging</span>
+            </div>
+
+            <div class="glass-card kpi-card">
+              <span class="kpi-label" id="exp-metric-kpi4-label">Magliette & Prove</span>
+              <div class="kpi-value" id="exp-metric-kpi4-val">€ 0,00</div>
+              <span class="kpi-footer" id="exp-metric-kpi4-sub">Acquisto stock & campioni</span>
+            </div>
+          </div>
+
+          <!-- Category Trend Mini Chart -->
+          <div class="glass-card chart-card">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title" id="exp-chart-title">Andamento Spese nel Tempo</h3>
+                <span class="chart-subtitle">Cronistoria e volumi di spesa per categoria</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 220px;">
+              <canvas id="chart-expenses-trend"></canvas>
+            </div>
+          </div>
+
+          <!-- Interactive Expenses Table -->
+          <div class="glass-card table-card">
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="expenses-search" placeholder="Cerca fornitore, corriere, descrizione...">
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted);" id="expenses-table-counter">Mostrando 0 uscite</div>
+            </div>
+
+            <div class="apple-table-wrapper">
+              <table class="apple-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Categoria</th>
+                    <th>Descrizione</th>
+                    <th>Dettagli Operativi</th>
+                    <th style="text-align: right;">Importo</th>
+                    <th>Note</th>
+                    <th style="text-align: center;">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="expenses-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 4: INSIGHTS & ANALYTICS -->
+        <!-- ======================================================== -->
+        <section id="view-insights" class="view-section">
+
+          <!-- Insights Filter Header -->
+          <div class="glass-card" style="padding: 16px 22px;">
+            <div class="insights-top-filters">
+              <div class="insights-filter-group">
+                <span class="filter-label">Filtro Colore:</span>
+                <div class="segmented-control" id="insights-color-filter">
+                  <button type="button" class="segment-item active" data-color="all">Tutti i Colori</button>
+                  <button type="button" class="segment-item" data-color="navy">🔵 Blu navy</button>
+                  <button type="button" class="segment-item" data-color="white">⚪ Bianca</button>
+                </div>
+              </div>
+
+              <div class="insights-filter-group">
+                <span class="filter-label">Filtro Taglia:</span>
+                <div class="segmented-control" id="insights-size-filter">
+                  <button type="button" class="segment-item active" data-size="all">Tutte</button>
+                  <button type="button" class="segment-item" data-size="S">S</button>
+                  <button type="button" class="segment-item" data-size="M">M</button>
+                  <button type="button" class="segment-item" data-size="L">L</button>
+                  <button type="button" class="segment-item" data-size="XL">XL</button>
+                  <button type="button" class="segment-item" data-size="XXL">XXL</button>
+                  <button type="button" class="segment-item" data-size="3XL">3XL</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- A. STATISTICHE PER COLORE -->
+          <div class="glass-card chart-card">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche per Colore</h3>
+                <span class="chart-subtitle">Preferenze cromatiche: Blu navy vs Bianca</span>
+              </div>
+            </div>
+            
+            <div class="color-hero-grid">
+              <div class="chart-container" style="height: 240px;">
+                <canvas id="chart-insights-color"></canvas>
+              </div>
+
+              <div class="color-breakdown-card">
+                <!-- Navy item -->
+                <div class="color-metric-item">
+                  <div class="color-swatch-box color-swatch-navy">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+                  </div>
+                  <div class="color-metric-info">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                      <span class="color-metric-name">Blu navy Tavolara</span>
+                      <span class="color-metric-count" id="ins-navy-count">0 capi</span>
+                    </div>
+                    <div class="color-metric-bar">
+                      <div class="color-metric-bar-fill" id="ins-navy-bar" style="width: 0%; background: #003760;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                      <span>Percentuale vendite</span>
+                      <strong id="ins-navy-pct">0.0%</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- White item -->
+                <div class="color-metric-item">
+                  <div class="color-swatch-box color-swatch-white">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+                  </div>
+                  <div class="color-metric-info">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                      <span class="color-metric-name">Bianca Tavolara</span>
+                      <span class="color-metric-count" id="ins-white-count">0 capi</span>
+                    </div>
+                    <div class="color-metric-bar">
+                      <div class="color-metric-bar-fill" id="ins-white-bar" style="width: 0%; background: #94a3b8;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                      <span>Percentuale vendite</span>
+                      <strong id="ins-white-pct">0.0%</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- B. STATISTICHE PER TAGLIA & TABELLA INCROCIATA -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche per Taglia (S, M, L, XL, XXL, 3XL)</h3>
+                <span class="chart-subtitle">Volumi, percentuali e matrice incrociata Taglia × Colore</span>
+              </div>
+              <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-matrix-csv">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Esporta Matrice CSV
+              </button>
+            </div>
+
+            <!-- Best / Least Seller Pills -->
+            <div class="size-highlight-grid">
+              <div class="glass-card size-highlight-card">
+                <div class="size-highlight-badge best">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                </div>
+                <div>
+                  <span style="font-size: 11.5px; font-weight: 600; color: var(--brand-ice); text-transform: uppercase;">Taglia Più Venduta</span>
+                  <div style="font-size: 20px; font-weight: 700; color: var(--brand-navy);" id="ins-best-seller">—</div>
+                  <span style="font-size: 12px; color: var(--text-muted);" id="ins-best-seller-sub">0 magliette</span>
+                </div>
+              </div>
+
+              <div class="glass-card size-highlight-card">
+                <div class="size-highlight-badge least">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                  <span style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Taglia Meno Venduta</span>
+                  <div style="font-size: 20px; font-weight: 700; color: var(--text-main);" id="ins-least-seller">—</div>
+                  <span style="font-size: 12px; color: var(--text-muted);" id="ins-least-seller-sub">0 magliette</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Size Bar Chart -->
+            <div class="chart-container" style="height: 220px; margin-bottom: 24px;">
+              <canvas id="chart-insights-size"></canvas>
+            </div>
+
+            <!-- Tabella Incrociata Richiesta Esplicitamente -->
+            <div style="margin-top: 14px; overflow-x: auto;">
+              <h4 style="font-size: 13.5px; font-weight: 700; color: var(--brand-navy); margin-bottom: 12px;">
+                Matrice Incrociata Taglia × Colore
+              </h4>
+              <table class="cross-matrix-table" id="cross-matrix-table">
+                <thead>
+                  <tr>
+                    <th>Taglia</th>
+                    <th>Blu navy</th>
+                    <th>Bianca</th>
+                    <th>Totale Venduto</th>
+                    <th>Percentuale</th>
+                  </tr>
+                </thead>
+                <tbody id="cross-matrix-tbody">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- C. STATISTICHE COMMERCIALI -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche Commerciali</h3>
+                <span class="chart-subtitle">Indicatori di vendita, clientela e valore medio scontrino</span>
+              </div>
+            </div>
+
+            <div class="kpi-hero-grid" style="margin-bottom: 20px;">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Ordini Totali</span>
+                <div class="kpi-value" id="ins-comm-orders">0</div>
+                <span class="kpi-footer">Complessivi registrati</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Clienti Unici</span>
+                <div class="kpi-value" id="ins-comm-customers">0</div>
+                <span class="kpi-footer">Indirizzi email univoci</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Magliette Complessive</span>
+                <div class="kpi-value" id="ins-comm-shirts">0</div>
+                <span class="kpi-footer">Capi totali spediti / consegnati</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Quantità Media / Ordine</span>
+                <div class="kpi-value" id="ins-comm-avg-qty">0,00</div>
+                <span class="kpi-footer">Capi per singolo acquisto</span>
+              </div>
+            </div>
+
+            <div class="kpi-hero-grid">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Valore Medio Ordine (AOV)</span>
+                <div class="kpi-value" id="ins-comm-aov">€ 0,00</div>
+                <span class="kpi-footer">Scontrino medio</span>
+              </div>
+
+              <div class="glass-card kpi-card" style="grid-column: span 3;">
+                <span class="kpi-label">Fatturato Totale Lordo</span>
+                <div class="kpi-value emerald-val" id="ins-comm-revenue">€ 0,00</div>
+                <span class="kpi-footer">Valore economico ordini effettuati</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- D. STATISTICHE ECONOMICHE -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche Economiche & Redditività</h3>
+                <span class="chart-subtitle">Costi di produzione, logistica, margine lordo e utile stimato</span>
+              </div>
+            </div>
+
+            <div class="economic-stats-grid">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Costo Totale Produzione</span>
+                <div class="kpi-value rose-val" id="ins-econ-prod-cost">€ 0,00</div>
+                <span class="kpi-footer">T-shirt + prove campioni</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Spese di Trasporto</span>
+                <div class="kpi-value" id="ins-econ-trans-cost">€ 0,00</div>
+                <span class="kpi-footer">Spedizioni corrieri</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Spese di Imballaggio</span>
+                <div class="kpi-value" id="ins-econ-pack-cost">€ 0,00</div>
+                <span class="kpi-footer">Buste, scatole ed etichette</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Spese per Prove & Test</span>
+                <div class="kpi-value" id="ins-econ-proof-cost">€ 0,00</div>
+                <span class="kpi-footer">Stampe e prototipi</span>
+              </div>
+            </div>
+
+            <div class="economic-stats-grid" style="margin-top: 18px;">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Costo Medio / Maglietta</span>
+                <div class="kpi-value" id="ins-econ-avg-cost">€ 0,00</div>
+                <span class="kpi-footer">Costo unitario stimato</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Ricavo Medio / Maglietta</span>
+                <div class="kpi-value" id="ins-econ-avg-rev">€ 0,00</div>
+                <span class="kpi-footer">Prezzo medio netto incassato</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Margine Lordo</span>
+                <div class="kpi-value emerald-val" id="ins-econ-gross-margin">€ 0,00</div>
+                <span class="kpi-footer" id="ins-econ-gross-margin-pct">0.0% sul fatturato</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Utile Stimato</span>
+                <div class="kpi-value" id="ins-econ-net-profit">€ 0,00</div>
+                <span class="kpi-footer" id="ins-econ-net-profit-pct">0.0% netto finale</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 5: ORDINI CLIENTI (OPERATIVITÀ) -->
+        <!-- ======================================================== -->
+        <section id="view-orders" class="view-section">
+          <div class="glass-card table-card">
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="orders-search" placeholder="Cerca ordine, cliente, email...">
+              </div>
+
+              <div class="segmented-control" id="orders-status-filter">
+                <button type="button" class="segment-item active" data-status="all">Tutti</button>
+                <button type="button" class="segment-item" data-status="Ordine ricevuto">Ricevuti</button>
+                <button type="button" class="segment-item" data-status="Ordine confermato">Confermati</button>
+                <button type="button" class="segment-item" data-status="Ordine da pagare">Da pagare</button>
+                <button type="button" class="segment-item" data-status="Ordine pagato">Pagati</button>
+                <button type="button" class="segment-item" data-status="Spedito / Consegnato">Spediti</button>
+              </div>
+
+              <div class="table-actions">
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-orders-csv">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Esporta Ordini CSV
+                </button>
+              </div>
+            </div>
+
+            <div class="apple-table-wrapper">
+              <table class="apple-table">
+                <thead>
+                  <tr>
+                    <th>Ordine #</th>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Articolo / Taglia</th>
+                    <th>Consegna</th>
+                    <th style="text-align: right;">Totale</th>
+                    <th>Stato Ordine</th>
+                    <th style="text-align: center;">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 6: CONFIGURAZIONE & STOCK -->
+        <!-- ======================================================== -->
+        <section id="view-config" class="view-section">
+          <div class="charts-grid-2x2">
+            <!-- Prezzi e Tariffe -->
+            <div class="glass-card" style="padding: 24px;">
+              <h3 class="chart-title" style="margin-bottom: 16px;">Prezzi & Tariffe Spedizione</h3>
+              <form id="form-config-prices" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-field">
+                  <label class="form-label" for="cfg-shirt-price">Prezzo T-shirt Ufficiale (€)</label>
+                  <input type="number" step="0.50" id="cfg-shirt-price" class="apple-input" placeholder="30.00" required>
+                </div>
+                <div class="form-grid-2">
+                  <div class="form-field">
+                    <label class="form-label" for="cfg-shipping-locker">Spedizione Locker (€)</label>
+                    <input type="number" step="0.50" id="cfg-shipping-locker" class="apple-input" placeholder="4.50" required>
+                  </div>
+                  <div class="form-field">
+                    <label class="form-label" for="cfg-shipping-home">Spedizione a Domicilio (€)</label>
+                    <input type="number" step="0.50" id="cfg-shipping-home" class="apple-input" placeholder="6.00" required>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="cfg-shipping-hand">Tariffa Consegna a Mano (€)</label>
+                  <input type="number" step="0.50" id="cfg-shipping-hand" class="apple-input" placeholder="0.00" required>
+                </div>
+                <button type="submit" class="apple-btn apple-btn-primary" style="margin-top: 8px;">Salva Prezzi</button>
+              </form>
+            </div>
+
+            <!-- Coordinate Bancarie -->
+            <div class="glass-card" style="padding: 24px;">
+              <h3 class="chart-title" style="margin-bottom: 16px;">Coordinate Bancarie Bonifico</h3>
+              <form id="form-config-bank" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-field">
+                  <label class="form-label" for="cfg-bank-holder">Intestatario del Conto</label>
+                  <input type="text" id="cfg-bank-holder" class="apple-input" placeholder="Tavolara S.r.l.">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="cfg-bank-iban">Codice IBAN</label>
+                  <input type="text" id="cfg-bank-iban" class="apple-input" placeholder="IT00X0000000000000000000000">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="cfg-bank-name">Istituto di Credito (Banca)</label>
+                  <input type="text" id="cfg-bank-name" class="apple-input" placeholder="Intesa Sanpaolo / Banco di Sardegna">
+                </div>
+                <button type="submit" class="apple-btn apple-btn-primary" style="margin-top: 8px;">Salva Dati Bancari</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Disponibilità Taglie Stock -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Disponibilità Taglie & Magazzino</h3>
+                <span class="chart-subtitle">Attiva o disattiva varianti per il modulo ordini clienti</span>
+              </div>
+            </div>
+            <div class="apple-table-wrapper">
+              <table class="apple-table">
+                <thead>
+                  <tr>
+                    <th>Colore</th>
+                    <th>Taglia</th>
+                    <th>Stato Disponibilità</th>
+                    <th>Stock Indicativo</th>
+                    <th style="text-align: right;">Azione Rapida</th>
+                  </tr>
+                </thead>
+                <tbody id="variants-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sicurezza e Cambio Password -->
+          <div class="glass-card" style="padding: 24px; max-width: 500px;">
+            <h3 class="chart-title" style="margin-bottom: 12px;">Modifica Password Amministratore</h3>
+            <form id="form-change-pwd" style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="form-field">
+                <label class="form-label" for="new-admin-pwd">Nuova Password</label>
+                <input type="password" id="new-admin-pwd" class="apple-input" placeholder="Minimo 6 caratteri" required>
+              </div>
+              <button type="submit" class="apple-btn apple-btn-rose">Aggiorna Password</button>
+            </form>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- 3. MODALS -->
+  <!-- ============================================================== -->
+
+  <!-- MODAL: ADD / EDIT ENTRATA (ATTIVO) -->
+  <div id="modal-income" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-income-title">Nuova Entrata Economica</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-income">✕</button>
+      </div>
+      <form id="form-income">
+        <input type="hidden" id="income-id">
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label" for="inc-desc">Descrizione Entrata <span class="req">*</span></label>
+            <input type="text" id="inc-desc" class="apple-input" placeholder="es. Vendita stock lotti preordine" required>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label class="form-label" for="inc-amount">Importo Totale (€) <span class="req">*</span></label>
+              <input type="number" step="0.01" id="inc-amount" class="apple-input" placeholder="0.00" required>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="inc-date">Data Registrazione <span class="req">*</span></label>
+              <input type="date" id="inc-date" class="apple-input" required>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label class="form-label" for="inc-method">Metodo di Pagamento</label>
+              <select id="inc-method" class="apple-input">
+                <option value="Bonifico bancario">Bonifico bancario</option>
+                <option value="Carta di credito / Stripe">Carta di credito / Stripe</option>
+                <option value="PayPal">PayPal</option>
+                <option value="Contanti / A mano">Contanti / A mano</option>
+                <option value="Altro">Altro metodo</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="inc-status">Stato Incasso</label>
+              <select id="inc-status" class="apple-input">
+                <option value="Incassata">Incassata (Effettivo)</option>
+                <option value="Confermata">Confermata</option>
+                <option value="In attesa">In attesa di accredito</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="inc-ref">Numero o Riferimento Ordine (opzionale)</label>
+            <input type="text" id="inc-ref" class="apple-input" placeholder="es. #TVL-26-1024 o Mario Rossi">
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="inc-notes">Note Aggiuntive</label>
+            <textarea id="inc-notes" class="apple-input" rows="2" placeholder="Dettagli aggiuntivi per la contabilità..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-income">Annulla</button>
+          <button type="submit" class="apple-btn apple-btn-emerald">Salva Entrata</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT SPESA (PASSIVO - 4 CATEGORIE) -->
+  <div id="modal-expense" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-expense-title">Registra Nuova Spesa</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-expense">✕</button>
+      </div>
+      <form id="form-expense">
+        <input type="hidden" id="expense-id">
+        <div class="modal-body">
+          
+          <!-- Category selector inside modal -->
+          <div class="form-field">
+            <label class="form-label" for="exp-cat">Categoria Spesa <span class="req">*</span></label>
+            <select id="exp-cat" class="apple-input" required>
+              <option value="trasporto">🚚 Spese di Trasporto</option>
+              <option value="imballaggio">📦 Spese di Imballaggio</option>
+              <option value="prove">🧪 Spese Prove & Sviluppo</option>
+              <option value="magliette">👕 Spese Magliette</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="exp-desc">Descrizione Spesa <span class="req">*</span></label>
+            <input type="text" id="exp-desc" class="apple-input" placeholder="es. Spedizione pacchi Olbia" required>
+          </div>
+
+          <!-- Specific Fields: Trasporto -->
+          <div id="exp-fields-trasporto" class="category-field-group">
+            <div class="form-grid-2">
+              <div class="form-field">
+                <label class="form-label" for="exp-trans-carrier">Corriere / Servizio</label>
+                <input type="text" id="exp-trans-carrier" class="apple-input" placeholder="es. GLS, Poste Italiane, BRT, DHL">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="exp-trans-count">Numero Spedizioni</label>
+                <input type="number" id="exp-trans-count" class="apple-input" min="1" value="1">
+              </div>
+            </div>
+            <div class="form-field" style="margin-top: 10px;">
+              <label class="form-label" for="exp-trans-type">Tipologia Spedizione</label>
+              <select id="exp-trans-type" class="apple-input">
+                <option value="singola">Spedizione Singola</option>
+                <option value="cumulativa">Spedizioni Cumulative / Lotto</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Specific Fields: Imballaggio -->
+          <div id="exp-fields-imballaggio" class="category-field-group" style="display: none;">
+            <div class="form-grid-2">
+              <div class="form-field">
+                <label class="form-label" for="exp-pack-material">Materiale Packaging</label>
+                <select id="exp-pack-material" class="apple-input">
+                  <option value="Scatole">Scatole automontanti</option>
+                  <option value="Buste">Buste spedizione</option>
+                  <option value="Etichette">Etichette adesive</option>
+                  <option value="Packaging personalizzato">Packaging personalizzato</option>
+                  <option value="Nastro e materiali">Nastro e altri materiali</option>
+                  <option value="Altro">Altro materiale</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="exp-pack-qty">Quantità Acquistata</label>
+                <input type="number" id="exp-pack-qty" class="apple-input" min="1" placeholder="es. 250">
+              </div>
+            </div>
+            <div class="form-field" style="margin-top: 10px;">
+              <label class="form-label" for="exp-pack-unit">Costo Unitario (€)</label>
+              <input type="number" step="0.01" id="exp-pack-unit" class="apple-input" placeholder="es. 0.85">
+            </div>
+          </div>
+
+          <!-- Specific Fields: Prove -->
+          <div id="exp-fields-prove" class="category-field-group" style="display: none;">
+            <div class="form-field">
+              <label class="form-label" for="exp-proof-type">Fase / Tipologia Prova</label>
+              <select id="exp-proof-type" class="apple-input">
+                <option value="Campioni e prototipi">Campioni e prototipi</option>
+                <option value="Campionature tessuto">Campionature tessuto</option>
+                <option value="Test di stampa serigrafica">Test di stampa serigrafica</option>
+                <option value="Modifiche e prove produzione">Modifiche e prove produzione</option>
+                <option value="Sviluppo grafica ed etichette">Sviluppo grafica ed etichette</option>
+                <option value="Altra spesa sviluppo">Altra spesa sviluppo</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Specific Fields: Magliette -->
+          <div id="exp-fields-magliette" class="category-field-group" style="display: none;">
+            <div class="form-field">
+              <label class="form-label" for="exp-shirt-supplier">Fornitore / Manifattura</label>
+              <input type="text" id="exp-shirt-supplier" class="apple-input" placeholder="es. Tessitura Italiana Srl">
+            </div>
+            <div class="form-grid-2" style="margin-top: 10px;">
+              <div class="form-field">
+                <label class="form-label" for="exp-shirt-qty">Quantità Capi Acquistati</label>
+                <input type="number" id="exp-shirt-qty" class="apple-input" min="1" placeholder="es. 100">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="exp-shirt-unit">Costo Unitario Maglietta (€)</label>
+                <input type="number" step="0.01" id="exp-shirt-unit" class="apple-input" placeholder="es. 8.50">
+              </div>
+            </div>
+            <div class="form-field" style="margin-top: 10px;">
+              <label class="form-label" for="exp-shirt-extra">Costi Aggiuntivi Produzione (Stampe, serigrafia, ricami €)</label>
+              <input type="number" step="0.01" id="exp-shirt-extra" class="apple-input" placeholder="es. 150.00" value="0.00">
+            </div>
+          </div>
+
+          <!-- Total Amount and Date -->
+          <div class="form-grid-2">
+            <div class="form-field">
+              <label class="form-label" for="exp-amount">Importo Totale Spesa (€) <span class="req">*</span></label>
+              <input type="number" step="0.01" id="exp-amount" class="apple-input" placeholder="0.00" required>
+              <span class="form-hint" id="exp-amount-calc-hint">Calcolato in automatico se inserisci quantità e prezzo</span>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="exp-date">Data della Spesa <span class="req">*</span></label>
+              <input type="date" id="exp-date" class="apple-input" required>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="exp-notes">Note Aggiuntive</label>
+            <textarea id="exp-notes" class="apple-input" rows="2" placeholder="Fattura num, note corriere o dettagli fornitore..."></textarea>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-expense">Annulla</button>
+          <button type="submit" class="apple-btn apple-btn-rose">Salva Spesa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: SYNC ORDERS TO INCOME -->
+  <div id="modal-sync-orders" class="modal-overlay">
+    <div class="modal-sheet" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Sincronizza Ordini con l'Attivo</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-sync-orders">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+          Seleziona gli ordini confermati o incassati che desideri registrare come movimenti ufficiali nell'Attivo:
+        </p>
+        <div class="apple-table-wrapper" style="max-height: 380px;">
+          <table class="apple-table">
+            <thead>
+              <tr>
+                <th>Ordine</th>
+                <th>Cliente</th>
+                <th>Importo</th>
+                <th>Stato Ordine</th>
+                <th style="text-align: right;">Azione</th>
+              </tr>
+            </thead>
+            <tbody id="sync-orders-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-sync-orders">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXCEL LIVE CONNECTION & SYNC -->
+  <div id="modal-excel-sync" class="modal-overlay">
+    <div class="modal-sheet" style="max-width: 640px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(5, 150, 105, 0.12); color: var(--emerald); display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div>
+            <h3 class="modal-title">Collegamento File Excel</h3>
+            <span style="font-size: 11.5px; color: var(--text-muted);">Sincronizzazione in tempo reale con il foglio ordini</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-excel-sync">✕</button>
+      </div>
+
+      <div class="modal-body" style="gap: 18px;">
+        <!-- Status Box -->
+        <div class="glass-card" style="padding: 16px 20px; background: var(--olive-bg); border-color: var(--olive-border);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--olive);"></span>
+              <strong style="font-size: 13.5px; color: var(--text-main);" id="excel-modal-status-text">File Excel Collegato & Sincronizzato</strong>
+            </div>
+            <span class="status-pill incassata" id="excel-modal-orders-pill">58 Ordini</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-secondary); word-break: break-all;" id="excel-modal-filepath">
+            Percorso: <code>tavolara_ordini_live.xlsx</code>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;" id="excel-modal-last-synced">
+            Ultima sincronizzazione: —
+          </div>
+        </div>
+
+        <!-- Metric Summary from Excel -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div class="glass-card" style="padding: 12px 14px;">
+            <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Incasso Previsto</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--olive); margin-top: 2px;" id="excel-modal-rev">€ 1.420,00</div>
+          </div>
+          <div class="glass-card" style="padding: 12px 14px;">
+            <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Costi Magliette</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--brick); margin-top: 2px;" id="excel-modal-costs">€ 696,00</div>
+          </div>
+          <div class="glass-card" style="padding: 12px 14px;">
+            <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Utile Calcolato</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--text-main); margin-top: 2px;" id="excel-modal-profit">€ 724,00</div>
+          </div>
+        </div>
+
+        <!-- Soci Split Box -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="glass-card" style="padding: 14px 16px; background: var(--bg-card-subtle); border-color: var(--border-main);">
+            <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Quota Utile Socio Pala</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--text-main); margin-top: 2px;" id="excel-modal-pala">€ 362,00</div>
+          </div>
+          <div class="glass-card" style="padding: 14px 16px; background: var(--terracotta-bg); border-color: var(--terracotta-border);">
+            <span style="font-size: 11px; font-weight: 600; color: var(--terracotta); text-transform: uppercase; letter-spacing: 0.04em;">Quota Utile Socio Bizzotto</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--terracotta-dark); margin-top: 2px;" id="excel-modal-bizz">€ 362,00</div>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Upload Zone -->
+        <div style="border: 1.5px dashed var(--border-dark); border-radius: var(--radius-sm); padding: 22px; text-align: center; background: var(--bg-card-subtle); cursor: pointer;" id="excel-drop-zone">
+          <input type="file" id="excel-file-input" accept=".xlsx" style="display: none;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color: var(--terracotta); margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Trascina qui il file Excel o clicca per aggiornarlo</div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Accetta file <code>.xlsx</code> (es. <code>tavolr ordini novembredicembre2026.xlsx</code>)</div>
+        </div>
+
+        <!-- Continuous Connection Info Box -->
+        <div style="padding: 14px 16px; border-radius: var(--radius-sm); background: var(--bg-card-subtle); border: 1px solid var(--border-main); font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+          <strong style="color: var(--text-main); display: block; margin-bottom: 3px;">💡 Collegamento Continuo Attivo:</strong>
+          Il gestionale monitora direttamente il file su disco. Ogni salvataggio in Excel o Numbers viene sincronizzato istantaneamente senza dover ricaricare la pagina.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-excel-sync">Chiudi</button>
+        <button type="button" class="apple-btn apple-btn-primary" id="btn-trigger-excel-sync">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Sincronizza Ora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Supabase JS Client Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabaseClient.js"></script>
+  <!-- App Logic -->
+  <script src="/js/admin.js"></script>
+</body>
+</html>
