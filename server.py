@@ -13,6 +13,8 @@ import re
 import csv
 import io
 import secrets
+import hashlib
+import hmac
 from datetime import datetime, timezone, timedelta
 from database import get_db, init_db, hash_password
 import financial
@@ -95,8 +97,6 @@ def get_auth_token(handler):
         if c.startswith("tavolara_admin_session="):
             return c.split("=", 1)[1].strip()
     return None
-
-import hmac
 
 AUTH_SECRET = os.environ.get("AUTH_SECRET", "tavolara_wear_permanent_auth_secret_2026_key")
 
