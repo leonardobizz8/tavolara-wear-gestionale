@@ -2,10 +2,14 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Tavolara Wear — Gestionale Finanziario & Business Hub</title>
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#F8F7F4">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
   <link rel="icon" href="/assets/favicon-48.png" sizes="48x48">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
@@ -1315,6 +1319,31 @@
       </div>
     </div>
   </div>
+
+  <!-- MOBILE BACKDROP & BOTTOM NAVIGATION -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <button type="button" class="mobile-nav-btn active" data-view="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Overview</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-view="attivo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+      <span>Entrate</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-view="passivo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+      <span>Uscite</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-view="insights">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+      <span>Insights</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" id="mobile-bottom-more">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+      <span>Menu</span>
+    </button>
+  </nav>
 
   <!-- TOAST CONTAINER -->
   <div class="toast-container" id="toast-container"></div>

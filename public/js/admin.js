@@ -239,8 +239,41 @@ async function logout() {
 }
 
 // ---------------------------------------------------------------------------
-// 5. VIEW & TAB NAVIGATION
+// 5. VIEW & TAB NAVIGATION & MOBILE DRAWER
 // ---------------------------------------------------------------------------
+function openMobileSidebar() {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  if (sb) sb.classList.add("open");
+  if (bd) {
+    bd.style.display = "block";
+    requestAnimationFrame(() => bd.classList.add("active"));
+  }
+}
+
+function closeMobileSidebar() {
+  const sb = document.getElementById("sidebar");
+  const bd = document.getElementById("sidebar-backdrop");
+  if (sb) sb.classList.remove("open");
+  if (bd) {
+    bd.classList.remove("active");
+    setTimeout(() => {
+      if (!bd.classList.contains("active")) {
+        bd.style.display = "none";
+      }
+    }, 250);
+  }
+}
+
+function toggleMobileSidebar() {
+  const sb = document.getElementById("sidebar");
+  if (sb?.classList.contains("open")) {
+    closeMobileSidebar();
+  } else {
+    openMobileSidebar();
+  }
+}
+
 function switchView(viewName) {
   state.currentView = viewName;
 
@@ -252,6 +285,18 @@ function switchView(viewName) {
       link.classList.remove("active");
     }
   });
+
+  // Update mobile bottom nav buttons
+  document.querySelectorAll(".mobile-nav-btn[data-view]").forEach(btn => {
+    if (btn.dataset.view === viewName) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  // Auto-close mobile drawer
+  closeMobileSidebar();
 
   // Update view sections
   document.querySelectorAll(".view-section").forEach(sec => {
@@ -1999,9 +2044,30 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Mobile menu toggle
-  document.getElementById("mobile-toggle")?.addEventListener("click", () => {
-    document.getElementById("sidebar")?.classList.toggle("open");
+  // Mobile bottom navigation bar view switchers
+  document.querySelectorAll(".mobile-nav-btn[data-view]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const view = btn.dataset.view;
+      if (view) switchView(view);
+    });
+  });
+
+  // Mobile menu more button (opens sidebar drawer)
+  document.getElementById("mobile-bottom-more")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleMobileSidebar();
+  });
+
+  // Mobile menu toggle in top header
+  document.getElementById("mobile-toggle")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    toggleMobileSidebar();
+  });
+
+  // Tap on backdrop closes drawer
+  document.getElementById("sidebar-backdrop")?.addEventListener("click", () => {
+    closeMobileSidebar();
   });
 
   // 5. Time Period Filters
