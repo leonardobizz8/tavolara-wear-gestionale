@@ -8,12 +8,13 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py?__path__=$1" },
     { "source": "/api", "destination": "/api/index.py" },
-    { "source": "/admin", "destination": "/admin.html" },
-    { "source": "/admin/(.*)", "destination": "/admin.html" },
-    { "source": "/gestionale", "destination": "/admin.html" },
-    { "source": "/dashboard", "destination": "/admin.html" },
-    { "source": "/ordina", "destination": "/index.html" },
-    { "source": "/ordine/(.*)", "destination": "/index.html" }
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/admin/(.*)", "destination": "/index.html" },
+    { "source": "/gestionale", "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/modulo", "destination": "/modulo.html" },
+    { "source": "/ordina", "destination": "/modulo.html" },
+    { "source": "/ordine/(.*)", "destination": "/modulo.html" }
   ],
   "headers": [
     {

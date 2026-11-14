@@ -507,16 +507,13 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
         # -----------------------------
         # STATIC SPA ROUTING
         # -----------------------------
-        # If path is root or HTML route, serve index.html or admin.html
-        if path in ["/", "/ordina", "/index.html"]:
-            self.serve_file(os.path.join(STATIC_DIR, "index.html"), "text/html; charset=utf-8")
-            return
-        elif path in ["/admin", "/admin/", "/admin/index.html", "/gestionale", "/dashboard"]:
+        # Default root and admin routes serve the GESTIONALE
+        if path in ["/", "/admin", "/admin/", "/admin/index.html", "/gestionale", "/dashboard", "/index.html"]:
             self.serve_file(os.path.join(STATIC_DIR, "admin.html"), "text/html; charset=utf-8")
             return
-        elif path.startswith("/ordine/"):
-            # Deep link for order confirmation
-            self.serve_file(os.path.join(STATIC_DIR, "index.html"), "text/html; charset=utf-8")
+        elif path in ["/modulo", "/ordina", "/modulo.html"] or path.startswith("/ordine/"):
+            # Customer ordering form
+            self.serve_file(os.path.join(STATIC_DIR, "modulo.html"), "text/html; charset=utf-8")
             return
 
         super().do_GET()
