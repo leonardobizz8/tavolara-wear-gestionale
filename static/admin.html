@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tavolara Wear — Dashboard Gestione Ordini</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#003760">
+  
+  <link rel="icon" href="/assets/favicon-48.png" sizes="48x48">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <!-- Login Screen Modal (Shown when not authenticated) -->
+  <div id="login-overlay" class="login-overlay" style="display: flex;">
+    <div class="login-box">
+      <div class="login-brand">
+        <span class="brand-signature-dark"></span>
+      </div>
+      <h2 style="font-family: Georgia, serif; font-size: 22px; color: #142f48; margin-bottom: 6px;">Area Riservata Soci</h2>
+      <p style="font-size: 13px; color: #527084; margin-bottom: 20px;">Inserisci la password di amministrazione per gestire ordini e configurazioni.</p>
+      
+      <form id="login-form">
+        <div class="form-group" style="text-align: left; margin-bottom: 16px;">
+          <label for="admin-pwd" style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;">Password Amministratore</label>
+          <input type="password" id="admin-pwd" class="adm-input" placeholder="••••••••••••" required autocomplete="current-password">
+        </div>
+        <p id="login-error" style="color: #c53030; font-size: 13px; display: none; margin-bottom: 12px;"></p>
+        <button type="submit" class="adm-btn adm-btn-primary" id="btn-login" style="width: 100%;">
+          Accedi alla Dashboard
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin App Wrapper -->
+  <div id="admin-app" class="admin-wrapper" style="display: none;">
+    <!-- Top Navigation Header -->
+    <header class="adm-header">
+      <div class="adm-header-left">
+        <span class="brand-signature-white"></span>
+        <span class="adm-badge">Area Soci</span>
+      </div>
+      <div class="adm-header-right">
+        <a href="/" target="_blank" class="adm-link-btn" title="Apri modulo pubblico clienti">
+          ↗ Modulo Clienti
+        </a>
+        <button type="button" class="adm-btn-logout" id="btn-logout">
+          Esci
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="adm-container">
+      
+      <!-- Tab Navigation -->
+      <nav class="adm-tabs">
+        <button type="button" class="adm-tab active" data-tab="orders">📦 Gestione Ordini</button>
+        <button type="button" class="adm-tab" data-tab="analytics">📊 Statistiche & Magazzino</button>
+        <button type="button" class="adm-tab" data-tab="config">⚙️ Prezzi & Tariffe</button>
+        <button type="button" class="adm-tab" data-tab="bank">🏦 Coordinate Bancarie</button>
+        <button type="button" class="adm-tab" data-tab="variants">👕 Disponibilità Taglie</button>
+        <button type="button" class="adm-tab" data-tab="discounts">🎟️ Codici Sconto</button>
+        <button type="button" class="adm-tab" data-tab="security">🔒 Sicurezza</button>
+      </nav>
+
+      <!-- ============================================================== -->
+      <!-- TAB 1: ORDERS MANAGEMENT -->
+      <!-- ============================================================== -->
+      <section id="tab-orders" class="adm-tab-content active">
+        <!-- Quick KPI Cards Bar -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Totale Ordini</span>
+            <strong class="kpi-value" id="kpi-total-orders">0</strong>
+            <small class="kpi-sub">Ricevuti</small>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Magliette Vendute</span>
+            <strong class="kpi-value" id="kpi-total-shirts">0</strong>
+            <small class="kpi-sub">Capi attivi</small>
+          </div>
+          <div class="kpi-card highlight-orange">
+            <span class="kpi-label">In Attesa Bonifico</span>
+            <strong class="kpi-value" id="kpi-pending-orders">0</strong>
+            <small class="kpi-sub" id="kpi-pending-rev">0.00 €</small>
+          </div>
+          <div class="kpi-card highlight-green">
+            <span class="kpi-label">Pagamenti Verificati</span>
+            <strong class="kpi-value" id="kpi-verified-orders">0</strong>
+            <small class="kpi-sub" id="kpi-verified-rev">0.00 €</small>
+          </div>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <div class="adm-toolbar">
+          <div class="adm-search-box">
+            <input type="text" id="order-search-input" class="adm-input" placeholder="🔍 Cerca per nome, cognome, ordine TVL- o email...">
+          </div>
+          <div class="adm-filters-row">
+            <select id="filter-status" class="adm-select">
+              <option value="">Tutti gli stati</option>
+              <option value="Nuovo ordine">Nuovo ordine</option>
+              <option value="In attesa di pagamento">In attesa di pagamento</option>
+              <option value="Pagamento verificato">Pagamento verificato</option>
+              <option value="In preparazione">In preparazione</option>
+              <option value="Spedito / Consegnato">Spedito / Consegnato</option>
+              <option value="Annullato">Annullato</option>
+            </select>
+
+            <select id="filter-delivery" class="adm-select">
+              <option value="">Tutte le consegne</option>
+              <option value="locker">Locker</option>
+              <option value="home">Domicilio</option>
+              <option value="hand">A mano</option>
+            </select>
+
+            <input type="date" id="filter-date-from" class="adm-input" title="Data da">
+            <input type="date" id="filter-date-to" class="adm-input" title="Data a">
+
+            <button type="button" class="adm-btn adm-btn-secondary" id="btn-reset-filters">
+              Ripristina
+            </button>
+            <button type="button" class="adm-btn adm-btn-excel" id="btn-export-csv" title="Esporta in CSV per Excel">
+              📥 Esporta CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="adm-table-wrap">
+          <table class="adm-table" id="orders-table">
+            <thead>
+              <tr>
+                <th>N° Ordine</th>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Articoli</th>
+                <th>Consegna</th>
+                <th>Totale</th>
+                <th>Stato Ordine</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: #728ea0;">
+                  Caricamento ordini in corso...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 2: ANALYTICS & WAREHOUSE -->
+      <!-- ============================================================== -->
+      <section id="tab-analytics" class="adm-tab-content">
+        <div class="adm-panel">
+          <h2 class="adm-panel-title">Riepilogo Vendite e Magazzino</h2>
+          <p class="adm-panel-desc">Panoramica dettagliata dei capi venduti suddivisi per taglia e colore.</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 20px;">
+            <!-- By Size -->
+            <div class="analytics-box">
+              <h3 class="analytics-sub">Magliette per Taglia</h3>
+              <div id="analytics-sizes-list" class="stat-list">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- By Color -->
+            <div class="analytics-box">
+              <h3 class="analytics-sub">Magliette per Colore</h3>
+              <div id="analytics-colors-list" class="stat-list">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 3: PRICING & SHIPPING CONFIGURATION -->
+      <!-- ============================================================== -->
+      <section id="tab-config" class="adm-tab-content">
+        <div class="adm-panel">
+          <h2 class="adm-panel-title">Prezzi e Tariffe di Spedizione</h2>
+          <p class="adm-panel-desc">
+            Imposta il prezzo ufficiale delle T-shirt e i costi di consegna. Fintanto che il prezzo non è impostato, il sistema blocca gli ordini per proteggere il brand.
+          </p>
+
+          <form id="config-form" style="max-width: 580px; margin-top: 20px;">
+            <div class="form-group">
+              <label class="adm-label" for="cfg-shirt-price">
+                Prezzo Ufficiale T-shirt (€) *
+              </label>
+              <input type="number" step="0.50" id="cfg-shirt-price" class="adm-input" placeholder="es. 30.00" required>
+              <small class="adm-help">Prezzo singolo capo IVA inclusa. Se vuoto, gli ordini sono sospesi.</small>
+            </div>
+
+            <div class="form-group">
+              <label class="adm-label" for="cfg-shipping-locker">
+                Costo Spedizione Locker / Punto di Ritiro (€) *
+              </label>
+              <input type="number" step="0.50" id="cfg-shipping-locker" class="adm-input" placeholder="es. 4.90" required>
+              <small class="adm-help">Inserisci 0 se gratuita.</small>
+            </div>
+
+            <div class="form-group">
+              <label class="adm-label" for="cfg-shipping-home">
+                Costo Spedizione a Domicilio (€) *
+              </label>
+              <input type="number" step="0.50" id="cfg-shipping-home" class="adm-input" placeholder="es. 6.90" required>
+              <small class="adm-help">Inserisci 0 se gratuita.</small>
+            </div>
+
+            <div class="form-group">
+              <label class="adm-label" for="cfg-shipping-hand">
+                Costo Consegna a Mano (€)
+              </label>
+              <input type="number" step="0.50" id="cfg-shipping-hand" class="adm-input" placeholder="0.00" value="0.00">
+              <small class="adm-help">Di norma 0.00 (gratuita e concordata direttamente).</small>
+            </div>
+
+            <button type="submit" class="adm-btn adm-btn-primary" style="margin-top: 14px;">
+              💾 Salva Prezzi e Tariffe
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 4: BANK WIRE COORDINATES -->
+      <!-- ============================================================== -->
+      <section id="tab-bank" class="adm-tab-content">
+        <div class="adm-panel">
+          <h2 class="adm-panel-title">Coordinate Bancarie per i Clienti</h2>
+          <p class="adm-panel-desc">
+            Inserisci le coordinate bancarie su cui i clienti effettueranno i bonifici. Saranno mostrate al termine dell'ordine assieme alla causale univoca generata in automatico.
+          </p>
+
+          <form id="bank-form" style="max-width: 580px; margin-top: 20px;">
+            <div class="form-group">
+              <label class="adm-label" for="cfg-bank-holder">
+                Intestatario del Conto Corrente *
+              </label>
+              <input type="text" id="cfg-bank-holder" class="adm-input" placeholder="es. Tavolara Srl" required>
+            </div>
+
+            <div class="form-group">
+              <label class="adm-label" for="cfg-bank-iban">
+                IBAN *
+              </label>
+              <input type="text" id="cfg-bank-iban" class="adm-input" placeholder="es. IT60X0542811101000000123456" style="font-family: monospace;" required>
+            </div>
+
+            <div class="form-group">
+              <label class="adm-label" for="cfg-bank-name">
+                Nome della Banca (opzionale)
+              </label>
+              <input type="text" id="cfg-bank-name" class="adm-input" placeholder="es. Intesa Sanpaolo / Banco di Sardegna">
+            </div>
+
+            <div class="form-group">
+              <label class="adm-label" for="cfg-bank-notes">
+                Istruzioni per il Cliente
+              </label>
+              <textarea id="cfg-bank-notes" class="adm-input" rows="3">Effettua il bonifico con l'importo esatto e indica la causale generata. L'ordine sarà preparato e spedito dopo la verifica manuale dell'accredito.</textarea>
+            </div>
+
+            <button type="submit" class="adm-btn adm-btn-primary" style="margin-top: 14px;">
+              💾 Salva Coordinate Bancarie
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 5: SIZE & COLOR AVAILABILITY MATRIX -->
+      <!-- ============================================================== -->
+      <section id="tab-variants" class="adm-tab-content">
+        <div class="adm-panel">
+          <h2 class="adm-panel-title">Disponibilità Taglie e Colori</h2>
+          <p class="adm-panel-desc">
+            Attiva o disattiva istantaneamente le taglie per ciascun colore senza toccare il codice. Le varianti disabilitate appariranno come "Esaurite" nel modulo pubblico.
+          </p>
+
+          <div class="variants-matrix" id="variants-matrix-container" style="margin-top: 20px;">
+            <!-- Generated via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 6: DISCOUNT CODES -->
+      <!-- ============================================================== -->
+      <section id="tab-discounts" class="adm-tab-content">
+        <div class="adm-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+            <div>
+              <h2 class="adm-panel-title">Codici Sconto Promozionali</h2>
+              <p class="adm-panel-desc">Crea e gestisci i codici promozionali validati dal sistema.</p>
+            </div>
+            <button type="button" class="adm-btn adm-btn-primary" id="btn-open-new-discount">
+              + Nuovo Codice Sconto
+            </button>
+          </div>
+
+          <table class="adm-table">
+            <thead>
+              <tr>
+                <th>Codice</th>
+                <th>Tipo</th>
+                <th>Valore</th>
+                <th>Utilizzi</th>
+                <th>Stato</th>
+                <th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="discounts-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- TAB 7: SECURITY & PASSWORD -->
+      <!-- ============================================================== -->
+      <section id="tab-security" class="adm-tab-content">
+        <div class="adm-panel" style="max-width: 500px;">
+          <h2 class="adm-panel-title">Modifica Password Amministratore</h2>
+          <p class="adm-panel-desc">Aggiorna la password utilizzata per accedere a questa area di gestione.</p>
+
+          <form id="pwd-form" style="margin-top: 20px;">
+            <div class="form-group">
+              <label class="adm-label" for="new-password">Nuova Password</label>
+              <input type="password" id="new-password" class="adm-input" minlength="6" placeholder="Almeno 6 caratteri" required>
+            </div>
+            <button type="submit" class="adm-btn adm-btn-primary" style="margin-top: 14px;">
+              Aggiorna Password
+            </button>
+          </form>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Order Details Modal -->
+  <dialog id="order-modal" class="adm-dialog">
+    <div class="adm-dialog-header">
+      <h3 style="font-family: Georgia, serif; font-size: 20px; color: #142f48;" id="modal-order-title">Dettaglio Ordine</h3>
+      <button type="button" class="adm-dialog-close" id="btn-close-modal">&times;</button>
+    </div>
+    <div id="modal-order-content" style="margin-top: 16px;"></div>
+  </dialog>
+
+  <!-- New Discount Modal -->
+  <dialog id="new-discount-modal" class="adm-dialog">
+    <div class="adm-dialog-header">
+      <h3 style="font-family: Georgia, serif; font-size: 20px; color: #142f48;">Crea Codice Sconto</h3>
+      <button type="button" class="adm-dialog-close" id="btn-close-discount-modal">&times;</button>
+    </div>
+    <form id="new-discount-form" style="margin-top: 16px;">
+      <div class="form-group">
+        <label class="adm-label" for="disc-code">Codice Promozionale (es. TAVOLARA5) *</label>
+        <input type="text" id="disc-code" class="adm-input" required style="text-transform: uppercase;">
+      </div>
+      <div class="form-group">
+        <label class="adm-label" for="disc-value">Importo Sconto (€) *</label>
+        <input type="number" step="0.50" id="disc-value" class="adm-input" value="5.00" required>
+      </div>
+      <button type="submit" class="adm-btn adm-btn-primary" style="width: 100%; margin-top: 14px;">
+        Crea Codice
+      </button>
+    </form>
+  </dialog>
+
+  <!-- Toast -->
+  <div id="adm-toast" class="adm-toast">
+    <span id="adm-toast-text">Notifica</span>
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
