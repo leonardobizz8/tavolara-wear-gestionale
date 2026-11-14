@@ -15,9 +15,41 @@ import io
 import secrets
 from datetime import datetime, timezone, timedelta
 from database import get_db, init_db, hash_password
+import financial
+import excel_sync
 
 PORT = 8080
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+def read_safe_env():
+    env_file = os.path.join(os.path.dirname(__file__), ".env")
+    cfg = {
+        "supabase_url": "",
+        "supabase_anon_key": "",
+        "is_configured": False
+    }
+    if not os.path.isfile(env_file):
+        return cfg
+    try:
+        with open(env_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    k, v = line.split("=", 1)
+                    k = k.strip()
+                    v = v.strip().strip('"').strip("'")
+                    if k == "SUPABASE_URL":
+                        cfg["supabase_url"] = v
+                    elif k == "SUPABASE_ANON_KEY":
+                        if "service_role" in v.lower():
+                            continue
+                        cfg["supabase_anon_key"] = v
+        cfg["is_configured"] = bool(cfg["supabase_url"] and cfg["supabase_anon_key"])
+    except Exception as e:
+        print("[Server] Errore lettura .env:", e)
+    return cfg
 
 # Helper: parse json body
 def read_json_body(handler):
@@ -96,6 +128,10 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
         # -----------------------------
         # PUBLIC APIs
         # -----------------------------
+        if path == "/api/config":
+            send_json(self, read_safe_env())
+            return
+
         if path == "/api/config/public":
             conn = get_db()
             rows = conn.execute("SELECT key, value FROM config").fetchall()
@@ -399,6 +435,70 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                 send_json(self, {"discounts": [dict(r) for r in rows]})
                 return
 
+            # -----------------------------
+            # FINANCIAL MANAGEMENT APIs
+            # -----------------------------
+            if path == "/api/admin/financial/overview":
+                period = query.get("period", ["all"])[0]
+                s_date = query.get("start_date", [None])[0]
+                e_date = query.get("end_date", [None])[0]
+                data = financial.get_overview_data(period=period, start_date=s_date, end_date=e_date)
+                send_json(self, data)
+                return
+
+            if path == "/api/admin/incomes":
+                search = query.get("search", [None])[0]
+                status_filter = query.get("status", ["all"])[0]
+                sort_by = query.get("sort_by", ["date"])[0]
+                order_dir = query.get("order", ["desc"])[0]
+                period = query.get("period", ["all"])[0]
+                s_date = query.get("start_date", [None])[0]
+                e_date = query.get("end_date", [None])[0]
+                data = financial.get_incomes(search=search, status=status_filter, sort_by=sort_by,
+                                             order=order_dir, period=period, start_date=s_date, end_date=e_date)
+                send_json(self, data)
+                return
+
+            if path == "/api/admin/expenses":
+                category = query.get("category", ["all"])[0]
+                search = query.get("search", [None])[0]
+                sort_by = query.get("sort_by", ["date"])[0]
+                order_dir = query.get("order", ["desc"])[0]
+                period = query.get("period", ["all"])[0]
+                s_date = query.get("start_date", [None])[0]
+                e_date = query.get("end_date", [None])[0]
+                data = financial.get_expenses(category=category, search=search, sort_by=sort_by,
+                                              order=order_dir, period=period, start_date=s_date, end_date=e_date)
+                send_json(self, data)
+                return
+
+            if path == "/api/admin/insights":
+                period = query.get("period", ["all"])[0]
+                s_date = query.get("start_date", [None])[0]
+                e_date = query.get("end_date", [None])[0]
+                f_color = query.get("color", [None])[0]
+                f_size = query.get("size", [None])[0]
+                data = financial.get_insights_data(period=period, start_date=s_date, end_date=e_date,
+                                                   filter_color=f_color, filter_size=f_size)
+                send_json(self, data)
+                return
+
+            if path == "/api/admin/financial/export-csv":
+                export_type = query.get("type", ["all"])[0]
+                csv_bytes = financial.export_financial_csv(export_type=export_type)
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", f"attachment; filename=tavolara_{export_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+                self.send_header("Content-Length", str(len(csv_bytes)))
+                self.end_headers()
+                self.wfile.write(csv_bytes)
+                return
+
+            if path == "/api/admin/excel/status":
+                excel_sync.check_auto_sync()
+                send_json(self, excel_sync.get_excel_sync_status())
+                return
+
         # -----------------------------
         # STATIC SPA ROUTING
         # -----------------------------
@@ -406,7 +506,7 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
         if path in ["/", "/ordina", "/index.html"]:
             self.serve_file(os.path.join(STATIC_DIR, "index.html"), "text/html; charset=utf-8")
             return
-        elif path in ["/admin", "/admin/", "/admin/index.html"]:
+        elif path in ["/admin", "/admin/", "/admin/index.html", "/gestionale", "/dashboard"]:
             self.serve_file(os.path.join(STATIC_DIR, "admin.html"), "text/html; charset=utf-8")
             return
         elif path.startswith("/ordine/"):
@@ -669,7 +769,7 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                             created_at, updated_at
                         ) VALUES (
                             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                            'bonifico', ?, ?, ?, ?, 'Nuovo ordine', 1, ?, ?, ?, ?
+                            'bonifico', ?, ?, ?, ?, 'Ordine ricevuto', 1, ?, ?, ?, ?
                         )
                     """, (
                         order_number, order_token, first_name, last_name, email, phone,
@@ -888,11 +988,167 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
             send_json(self, {"success": True, "message": "Password amministratore modificata con successo."})
             return
 
+        # -----------------------------
+        # ADMIN: Incomes CRUD
+        # -----------------------------
+        if path == "/api/admin/incomes":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            data = read_json_body(self)
+            try:
+                income = financial.create_income(data)
+                send_json(self, {"success": True, "income": income}, status=201)
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
+        m_inc_sync = re.match(r"^/api/admin/incomes/sync-order/(\d+)$", path)
+        if m_inc_sync:
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            order_id = int(m_inc_sync.group(1))
+            try:
+                income = financial.sync_income_from_order(order_id)
+                send_json(self, {"success": True, "income": income}, status=201)
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
+        m_inc_edit = re.match(r"^/api/admin/incomes/(\d+)$", path)
+        if m_inc_edit:
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            income_id = int(m_inc_edit.group(1))
+            data = read_json_body(self)
+            try:
+                income = financial.update_income(income_id, data)
+                send_json(self, {"success": True, "income": income})
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
+        m_inc_del = re.match(r"^/api/admin/incomes/(\d+)/delete$", path)
+        if m_inc_del:
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            income_id = int(m_inc_del.group(1))
+            try:
+                financial.delete_income(income_id)
+                send_json(self, {"success": True, "message": f"Entrata #{income_id} eliminata."})
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
+        # -----------------------------
+        # ADMIN: Expenses CRUD
+        # -----------------------------
+        if path == "/api/admin/expenses":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            data = read_json_body(self)
+            try:
+                expense = financial.create_expense(data)
+                send_json(self, {"success": True, "expense": expense}, status=201)
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
+        m_exp_edit = re.match(r"^/api/admin/expenses/(\d+)$", path)
+        if m_exp_edit:
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            expense_id = int(m_exp_edit.group(1))
+            data = read_json_body(self)
+            try:
+                expense = financial.update_expense(expense_id, data)
+                send_json(self, {"success": True, "expense": expense})
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
+        m_exp_del = re.match(r"^/api/admin/expenses/(\d+)/delete$", path)
+        if m_exp_del:
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            expense_id = int(m_exp_del.group(1))
+            try:
+                financial.delete_expense(expense_id)
+                send_json(self, {"success": True, "message": f"Spesa #{expense_id} eliminata."})
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
+        # -----------------------------
+        # ADMIN: Excel Live Sync
+        # -----------------------------
+        if path == "/api/admin/excel/sync":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            res = excel_sync.sync_excel_to_db(force=True)
+            send_json(self, res)
+            return
+
+        if path == "/api/admin/excel/upload":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            content_len = int(self.headers.get("Content-Length", 0))
+            if content_len == 0:
+                send_error_json(self, "Nessun dato file ricevuto.", status=400)
+                return
+            raw_data = self.rfile.read(content_len)
+            
+            target_path = os.path.join(os.path.dirname(__file__), "data", "tavolara_ordini_live.xlsx")
+            with open(target_path, "wb") as f:
+                f.write(raw_data)
+            
+            res = excel_sync.sync_excel_to_db(excel_path=target_path, force=True)
+            send_json(self, res)
+            return
+
         # Default fallback
         send_error_json(self, "Endpoint non trovato.", status=404)
 
     def do_PUT(self):
         self.do_POST()
+
+    def do_DELETE(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+
+        if not is_admin_authenticated(self):
+            send_error_json(self, "Non autorizzato.", status=401)
+            return
+
+        m_inc = re.match(r"^/api/admin/incomes/(\d+)$", path)
+        if m_inc:
+            income_id = int(m_inc.group(1))
+            try:
+                financial.delete_income(income_id)
+                send_json(self, {"success": True, "message": f"Entrata #{income_id} eliminata."})
+            except Exception as e:
+                send_error_json(self, str(e), status=404)
+            return
+
+        m_exp = re.match(r"^/api/admin/expenses/(\d+)$", path)
+        if m_exp:
+            expense_id = int(m_exp.group(1))
+            try:
+                financial.delete_expense(expense_id)
+                send_json(self, {"success": True, "message": f"Spesa #{expense_id} eliminata."})
+            except Exception as e:
+                send_error_json(self, str(e), status=404)
+            return
+
+        send_error_json(self, "Endpoint non trovato.", status=404)
 
     def do_PATCH(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -910,6 +1166,10 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
             new_status = (data.get("status") or "").strip()
 
             valid_statuses = [
+                "Ordine ricevuto",
+                "Ordine confermato",
+                "Ordine da pagare",
+                "Ordine pagato",
                 "Nuovo ordine",
                 "In attesa di pagamento",
                 "Pagamento verificato",
@@ -995,8 +1255,25 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
 
+def start_excel_auto_watcher():
+    """Background watcher that automatically detects edits to Excel orders file and syncs to Supabase."""
+    import threading
+    import time
+    def loop():
+        time.sleep(2)
+        while True:
+            try:
+                excel_sync.check_auto_sync()
+            except Exception as e:
+                pass
+            time.sleep(5)
+    t = threading.Thread(target=loop, daemon=True, name="ExcelAutoWatcher")
+    t.start()
+    print("[Server] Excel Auto Watcher avviato (controllo modifiche ogni 5s)")
+
 def run_server(port=PORT):
     init_db()
+    start_excel_auto_watcher()
     server = ThreadedHTTPServer(("0.0.0.0", port), TavolaraHandler)
     print(f"=====================================================")
     print(f"  TAVOLARA WEAR — ORDER SYSTEM RUNNING")

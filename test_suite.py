@@ -226,7 +226,7 @@ def run_all_tests():
     db_order = conn.execute("SELECT * FROM orders WHERE order_number = ?", (res8["order_number"],)).fetchone()
     assert db_order is not None, "Ordine non trovato nel database!"
     assert db_order["customer_first_name"] == "Elena"
-    assert db_order["status"] == "Nuovo ordine"
+    assert db_order["status"] in ("Ordine ricevuto", "Nuovo ordine")
     assert db_order["payment_method"] == "bonifico"
     assert db_order["privacy_accepted"] == 1
     

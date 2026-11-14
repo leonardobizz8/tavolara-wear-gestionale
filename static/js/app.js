@@ -140,14 +140,31 @@ function initCopyButtons() {
 // Initialize Application
 async function initApp() {
   try {
-    // 1. Fetch public configuration
-    const resCfg = await fetch("/api/config/public");
-    state.config = await resCfg.json();
+    // 0. Initialize Supabase if available
+    if (window.TavolaraSupabase) {
+      await window.TavolaraSupabase.init();
+    }
 
-    // 2. Fetch variants & availability
-    const resVar = await fetch("/api/variants");
-    const dataVar = await resVar.json();
-    state.variants = dataVar.variants || [];
+    // 1. Fetch public configuration & variants (Supabase primary, fallback local)
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      try {
+        state.config = await window.TavolaraSupabase.getPublicConfig();
+        state.variants = await window.TavolaraSupabase.getVariants() || [];
+      } catch (e) {
+        console.warn("[App] Supabase fetch error, fallback to API:", e);
+      }
+    }
+
+    if (!state.config) {
+      const resCfg = await fetch("/api/config/public");
+      state.config = await resCfg.json();
+    }
+
+    if (!state.variants || state.variants.length === 0) {
+      const resVar = await fetch("/api/variants");
+      const dataVar = await resVar.json();
+      state.variants = dataVar.variants || [];
+    }
 
     // Check if system is configured
     renderConfigStatus();
@@ -519,14 +536,25 @@ dom.btnApplyDiscount.addEventListener("click", async () => {
   dom.btnApplyDiscount.textContent = "Verifica...";
 
   try {
-    const res = await fetch("/api/discounts/validate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code })
-    });
-    const data = await res.json();
+    let data = null;
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      try {
+        data = await window.TavolaraSupabase.validateDiscount(code);
+      } catch (e) {
+        console.warn("[App] Supabase discount validation fallback:", e);
+      }
+    }
 
-    if (res.ok && data.valid) {
+    if (!data) {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+      });
+      data = await res.json();
+    }
+
+    if (data && data.valid) {
       state.discountCode = data.code;
       state.discountAmount = data.discount_value;
       dom.discountFeedback.className = "discount-feedback success";
@@ -537,7 +565,7 @@ dom.btnApplyDiscount.addEventListener("click", async () => {
       state.discountCode = null;
       state.discountAmount = 0.0;
       dom.discountFeedback.className = "discount-feedback error";
-      dom.discountFeedback.textContent = data.message || "Codice non valido o scaduto.";
+      dom.discountFeedback.textContent = data?.message || "Codice non valido o scaduto.";
       updatePricingBreakdown();
     }
   } catch (err) {
@@ -605,14 +633,25 @@ dom.btnSubmitOrder.addEventListener("click", async () => {
   dom.btnSubmitOrder.innerHTML = `Registrazione ordine in corso...`;
 
   try {
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
+    let data = null;
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      try {
+        data = await window.TavolaraSupabase.submitOrder(payload);
+      } catch (err) {
+        console.warn("[App] Supabase order submission error, fallback to API:", err);
+      }
+    }
 
-    if (res.ok && data.success) {
+    if (!data) {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      data = await res.json();
+    }
+
+    if (data && data.success) {
       state.orderConfirmedData = data;
       // Update browser URL without reload so user can refresh/bookmark
       const newUrl = `${window.location.origin}/ordine/${data.order_token}`;
@@ -622,13 +661,13 @@ dom.btnSubmitOrder.addEventListener("click", async () => {
       goToStep("conf");
       showToast("Ordine registrato con successo!");
     } else {
-      showToast(data.message || "Si è verificato un errore durante l'ordine.");
+      showToast(data?.message || "Si è verificato un errore durante l'ordine.");
       dom.btnSubmitOrder.disabled = false;
       dom.btnSubmitOrder.textContent = "Conferma Ordine e Procedi al Bonifico";
     }
   } catch (err) {
     console.error(err);
-    showToast("Errore di connessione. Controlla la rete e riprova.");
+    showToast(err.message || "Errore di connessione. Controlla la rete e riprova.");
     dom.btnSubmitOrder.disabled = false;
     dom.btnSubmitOrder.textContent = "Conferma Ordine e Procedi al Bonifico";
   } finally {
@@ -700,34 +739,53 @@ async function checkUrlForOrderToken() {
 
   if (token) {
     try {
-      const res = await fetch(`/api/orders/token/${token}`);
-      const data = await res.json();
-      if (res.ok && data.order) {
-        state.orderConfirmedData = data.order;
+      let ord = null;
+      if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+        try {
+          const resRpc = await window.TavolaraSupabase.getOrderByToken(token);
+          if (resRpc && resRpc.order) {
+            ord = resRpc.order;
+            ord.items = resRpc.items || [];
+          }
+        } catch (e) {
+          console.warn("[App] Supabase token lookup fallback:", e);
+        }
+      }
+
+      if (!ord) {
+        const res = await fetch(`/api/orders/token/${token}`);
+        const data = await res.json();
+        if (res.ok && data.order) {
+          ord = data.order;
+        }
+      }
+
+      if (ord) {
+        state.orderConfirmedData = ord;
         renderConfirmationScreen({
-          order_number: data.order.order_number,
-          wire_causale: data.order.wire_causale,
-          pricing: { total_amount: data.order.total_amount },
+          order_number: ord.order_number,
+          wire_causale: ord.wire_causale,
+          pricing: { total_amount: ord.total_amount },
           bank: {
-            holder: data.order.bank_holder,
-            iban: data.order.bank_iban,
-            name: data.order.bank_name,
-            causale: data.order.wire_causale
+            holder: ord.bank_holder,
+            iban: ord.bank_iban,
+            name: ord.bank_name,
+            causale: ord.wire_causale
           },
           customer: {
-            first_name: data.order.customer_first_name,
-            last_name: data.order.customer_last_name,
-            email: data.order.customer_email,
-            phone: data.order.customer_phone
+            first_name: ord.customer_first_name,
+            last_name: ord.customer_last_name,
+            email: ord.customer_email,
+            phone: ord.customer_phone
           },
-          items: data.order.items,
+          items: ord.items,
           delivery: {
-            method: data.order.delivery_method,
-            locker_name: data.order.locker_name,
-            address: data.order.delivery_address,
-            city: data.order.delivery_city,
-            province: data.order.delivery_province,
-            hand_location: data.order.hand_location
+            method: ord.delivery_method,
+            locker_name: ord.locker_name,
+            address: ord.delivery_address,
+            city: ord.delivery_city,
+            province: ord.delivery_province,
+            hand_location: ord.hand_location
           }
         });
         goToStep("conf");

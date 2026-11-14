@@ -1,0 +1,33 @@
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python caches and bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Deployment and editor caches
+.vercel
+.vercel/
+.idea/
+.vscode/
+
+# Agent workspaces
+.agent
+.agent/
+.agents
+.agents/
+scripts/chunk*.sql
+scripts/supabase_migration_payload.sql

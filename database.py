@@ -92,7 +92,8 @@ def init_db():
                 bank_holder TEXT,
                 bank_iban TEXT,
                 bank_name TEXT,
-                status TEXT NOT NULL DEFAULT 'Nuovo ordine',
+                status TEXT NOT NULL DEFAULT 'Ordine ricevuto',
+                payment_status TEXT NOT NULL DEFAULT 'da_pagare',
                 privacy_accepted INTEGER NOT NULL DEFAULT 1,
                 privacy_timestamp TEXT NOT NULL,
                 client_ip TEXT,
@@ -124,6 +125,50 @@ def init_db():
                 expires_at TEXT NOT NULL
             );
         """)
+
+        # Table: incomes (Attivo — Entrate)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS incomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                date TEXT NOT NULL,
+                payment_method TEXT NOT NULL DEFAULT 'Bonifico bancario',
+                order_reference TEXT DEFAULT '',
+                order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+                status TEXT NOT NULL DEFAULT 'Confermata',
+                notes TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_incomes_date ON incomes(date);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_incomes_status ON incomes(status);")
+
+        # Table: expenses (Passivo — Uscite & Spese)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS expenses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category TEXT NOT NULL,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                date TEXT NOT NULL,
+                carrier TEXT DEFAULT '',
+                shipment_count INTEGER DEFAULT 1,
+                shipment_type TEXT DEFAULT 'singola',
+                material_type TEXT DEFAULT '',
+                quantity INTEGER DEFAULT 0,
+                unit_cost REAL DEFAULT 0.0,
+                proof_type TEXT DEFAULT '',
+                supplier TEXT DEFAULT '',
+                extra_production_costs REAL DEFAULT 0.0,
+                notes TEXT DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);")
 
         # Seed initial config if not exists
         default_configs = {

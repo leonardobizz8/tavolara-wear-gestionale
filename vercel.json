@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.py" },
+    { "source": "/sw.js", "destination": "/static/sw.js" },
+    { "source": "/manifest.json", "destination": "/static/manifest.json" },
+    { "source": "/css/(.*)", "destination": "/static/css/$1" },
+    { "source": "/js/(.*)", "destination": "/static/js/$1" },
+    { "source": "/assets/(.*)", "destination": "/static/assets/$1" },
+    { "source": "/admin", "destination": "/static/admin.html" },
+    { "source": "/admin/(.*)", "destination": "/static/admin.html" },
+    { "source": "/gestionale", "destination": "/static/admin.html" },
+    { "source": "/dashboard", "destination": "/static/admin.html" },
+    { "source": "/ordina", "destination": "/static/index.html" },
+    { "source": "/ordine/(.*)", "destination": "/static/index.html" },
+    { "source": "/", "destination": "/static/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" },
+        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,PATCH,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    }
+  ]
+}

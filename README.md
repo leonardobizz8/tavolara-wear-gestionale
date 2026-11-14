@@ -1,36 +1,47 @@
-# TAVOLARA WEAR — SISTEMA DI RACCOLTA ORDINI ONLINE
+# TAVOLARA WEAR — GESTIONALE FINANZIARIO & SISTEMA ORDINI
 
-Sistema completo e indipendente di raccolta ordini per **Tavolara Wear**, progettato come naturale estensione del sito ufficiale ([tavolarawear.it](https://tavolarawear.it/)).
+Piattaforma gestionale proprietaria completa e indipendente per **Tavolara Wear**, con estetica premium Apple Glass (iOS / macOS), dashboard finanziaria centrale per il controllo quotidiano dei soci (entrate, uscite, 4 categorie di spesa, analytics vendite e matrice taglie/colori) ed estensione per la raccolta ordini dei clienti.
 
 ---
 
 ## 🌟 CARATTERISTICHE PRINCIPALI
 
-### 1. Esperienza d'acquisto Premium & Mobile-First
-- **Identità visiva ufficiale**: Palette cromatica originale (`#003760`, `#14243b`, `#164e6b`), tipografia editoriale (`Georgia` + `Arial`), logo originale e sfondo panoramico dell'Isola di Tavolara.
-- **Flusso guidato a step logici**:
-  1. *Selezione Prodotto*: Colori (Blu navy e Bianco), anteprima fotografica fronte/retro, selettore visivo delle taglie (S, M, L, XL, 2XL, 3XL) con stock in tempo reale, guida taglie interattiva fedele al sito ufficiale, selettore quantità.
-  2. *Dati & Consegna*: Campi cliente validati (Nome, Cognome, Email, Telefono) e 3 modalità di consegna:
-     - **Locker / Punto di ritiro** (InPost, FermoPoint, ecc.)
-     - **Spedizione a domicilio** (con indirizzo, CAP, città, provincia e note per il corriere)
-     - **Consegna a mano** (località concordata e contatto diretto)
-  3. *Riepilogo & Codice Sconto*: Calcolo automatico in tempo reale, codice promozionale (iniziale `TAVOLARA5` con 5 € di sconto), consenso GDPR privacy.
-  4. *Schermata Dedicata Bonifico Bancario*: Coordinate bancarie complete, causale univoca generata in automatico nel formato richiesto (`TAVOLARA WEAR - NOME COGNOME - NUMERO ORDINE`), pulsanti di copia rapida e rassicurazione sulla verifica manuale dell'accredito.
+### 1. Dashboard Gestionale Finanziaria dei Soci (`/admin` o `/dashboard`)
+- **Estetica Apple Glass & Control Center**: Superfici bianche traslucide con glassmorphism moderato, angoli arrotondati, gradienti delicati, palette blu notte, blu ghiaccio e smeraldo, animazioni e micro-interazioni fluide.
+- **Le 4 Sezioni Chiave del Gestionale**:
+  1. **Overview (Dashboard Principale)**:
+     - 4 Hero KPI glossy: Totale Entrate, Totale Uscite, Saldo Attuale e Utile Lordo (con percentuale di margine).
+     - 4 Indicatori Secondari: Magliette vendute, Ordini ricevuti, Costo medio per maglietta, Ricavo medio per ordine.
+     - 4 Grafici interattivi con gradienti morbidi: Entrate e Uscite nel tempo, Andamento del saldo cumulativo, Distribuzione delle spese per categoria (Donut), Andamento vendite magliette.
+     - Filtri temporali dinamici: Oggi, Settimana, Mese, Trimestre, Anno, Tutto, e Intervallo Date personalizzato.
+  2. **Attivo (Entrate)**:
+     - Modulo interattivo per registrare entrate (Descrizione, Importo, Data, Metodo di pagamento, Rif. Ordine, Note).
+     - Tabella completa filtrabile per stato (Confermata, In attesa, Incassata), metodo di pagamento e ricerca testo.
+     - Modifica ed eliminazione con feedback in tempo reale.
+     - **Sincronizzazione istantanea con Ordini**: 1 click per importare ordini online confermati direttamente nell'Attivo.
+  3. **Passivo (Uscite & Spese nelle 4 Categorie)**:
+     - Sottosezioni e filtri dedicati per:
+       - **A. Spese di Trasporto**: Spese spedizione, corrieri (GLS, BRT, DHL, Poste), spedizioni singole/cumulative, conteggio spedizioni, note.
+       - **B. Spese di Imballaggio**: Buste, scatole automontanti, etichette, packaging personalizzato, quantità acquistata, costo unitario e totale.
+       - **C. Spese Prove**: Campioni, prototipi, campionature, test di stampa serigrafica, modifiche e prove di produzione.
+       - **D. Spese Magliette**: Acquisto stock t-shirt grezze/finite, fornitore, quantità, costo unitario, costi extra di lavorazione e serigrafia.
+     - Indicatori di categoria dedicati (costo medio spedizione, costo medio imballaggio, magliette acquistate, costo unitario medio).
+     - Grafico di andamento spesa della categoria nel tempo.
+     - Calcolo automatico in tempo reale dell'importo durante l'inserimento.
+  4. **Insights & Analytics**:
+     - **Statistiche per Colore**: Magliette blu navy vs bianche vendute, percentuali e grafico a ciambella.
+     - **Statistiche per Taglia**: S, M, L, XL, XXL, 3XL con indicatori Taglia Più Venduta (🏆) e Taglia Meno Venduta (⚠️).
+     - **Matrice Incrociata Taglia × Colore**: Tabella incrociata (S..3XL × Blu, Bianca, Totale e %) con totale matematicamente coerente sia per riga che per colonna.
+     - **Statistiche Commerciali**: Ordini totali, Clienti unici, Magliette complessive, Quantità media per ordine, Valore medio carrello (AOV), Fatturato lordo.
+     - **Statistiche Economiche**: Costo complessivo produzione, Spese trasporto, Spese imballaggio, Spese prove, Costo medio per capo, Ricavo medio per capo, Margine lordo (€ e %), Utile stimato (€ e %).
+     - Filtri incrociati per periodo, colore e taglia.
+- **Esportazione CSV Professionale**: File con UTF-8 BOM e delimitatore punto e virgola, compatibili al 100% con Microsoft Excel, Apple Numbers e Google Sheets per Entrate, Uscite, Matrice Taglie e Report Generale.
+- **Persistenza e Integrità**: Dati persistiti in SQLite in modalità WAL (`data/tavolara_orders.db`), nessun dato perso al refresh della pagina, coerenza matematica totale tra tutte le sezioni.
 
-### 2. Dashboard Amministrativa Privata (`/admin`)
-- **Gestione completa degli ordini**: Tabella in tempo reale con filtri per stato, consegna, data e barra di ricerca istantanea per nome, cognome, numero d'ordine ed email.
-- **6 Stati dell'ordine**:
-  1. *Nuovo ordine*
-  2. *In attesa di pagamento*
-  3. *Pagamento verificato*
-  4. *In preparazione*
-  5. *Spedito / Consegnato*
-  6. *Annullato*
-- **Aggiornamento stati con 1 click**: I soci possono aggiornare lo stato di ogni ordine direttamente dal menu a tendina.
-- **Statistiche & Magazzino**: Totale capi venduti, spaccato analitico per taglia e colore, totale incassi verificati e in attesa.
-- **Matrice disponibilità taglie/colori**: Possibilità di attivare/disattivare qualsiasi taglia (es. contrassegnare una variante esaurita) con switch istantaneo, senza modificare codice.
-- **Configurazione dinamica**: Modifica del prezzo t-shirt, costi spedizione locker e domicilio, coordinate bancarie (IBAN, intestatario, banca) e codici sconto.
-- **Esportazione CSV**: File CSV formattato con UTF-8 BOM e delimitatore punto e virgola, compatibile al 100% con Microsoft Excel e Google Sheets.
+---
+
+### 2. Esperienza d'acquisto Clienti (`/`)
+- **Identità visiva Tavolara Wear**: Colori blu profondo e bianco, selettore taglie con stock in tempo reale, guida taglie, calcolo spedizioni (Locker, Domicilio, A mano), codici sconto (es. `TAVOLARA5`), causale bonifico bancario univoca anti-errore.
 
 ### 3. Architettura & Sicurezza
 - **Zero dipendenze esterne**: Funziona con la libreria standard di Python (`http.server` multi-thread, `sqlite3` con modalità WAL ad alta concorrenza, `secrets`, `hashlib`).
