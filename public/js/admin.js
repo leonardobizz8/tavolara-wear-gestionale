@@ -372,6 +372,37 @@ function setTimePeriod(period, customStart = null, customEnd = null) {
   }
 }
 
+function computeDateRange(period, customStart = null, customEnd = null) {
+  let startDate = null;
+  let endDate = null;
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  if (period === "today") {
+    startDate = todayStr;
+    endDate = todayStr;
+  } else if (period === "week") {
+    const d = new Date(today);
+    d.setDate(d.getDate() - 6);
+    startDate = d.toISOString().slice(0, 10);
+    endDate = todayStr;
+  } else if (period === "month") {
+    startDate = today.getFullYear() + "-" + String(today.getMonth() + 1).padStart(2, "0") + "-01";
+    endDate = todayStr;
+  } else if (period === "quarter") {
+    const qMonth = Math.floor(today.getMonth() / 3) * 3 + 1;
+    startDate = today.getFullYear() + "-" + String(qMonth).padStart(2, "0") + "-01";
+    endDate = todayStr;
+  } else if (period === "year") {
+    startDate = today.getFullYear() + "-01-01";
+    endDate = todayStr;
+  } else if (period === "custom") {
+    startDate = customStart || null;
+    endDate = customEnd || null;
+  }
+  return { startDate, endDate };
+}
+
 // ---------------------------------------------------------------------------
 // 6. OVERVIEW SECTION (DASHBOARD PRINCIPALE)
 // ---------------------------------------------------------------------------
@@ -688,14 +719,10 @@ function renderOverviewCharts(chartsData) {
 async function loadIncomes() {
   try {
     let res = null;
+    const { startDate: sDate, endDate: eDate } = computeDateRange(state.period, state.customStartDate, state.customEndDate);
+
     if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
       try {
-        let sDate = null;
-        let eDate = null;
-        if (state.period === "custom") {
-          sDate = state.customStartDate;
-          eDate = state.customEndDate;
-        }
         res = await window.TavolaraSupabase.getIncomes({
           status: state.incomeStatusFilter,
           search: state.incomeSearchQuery,
@@ -709,8 +736,8 @@ async function loadIncomes() {
 
     if (!res) {
       let url = `/api/admin/incomes?period=${state.period}&status=${state.incomeStatusFilter}&search=${encodeURIComponent(state.incomeSearchQuery)}`;
-      if (state.period === "custom" && state.customStartDate && state.customEndDate) {
-        url += `&start_date=${state.customStartDate}&end_date=${state.customEndDate}`;
+      if (sDate && eDate) {
+        url += `&start_date=${sDate}&end_date=${eDate}`;
       }
       res = await apiRequest(url);
     }
@@ -839,6 +866,7 @@ async function saveIncome(e) {
   };
 
   try {
+    let savedInSb = false;
     if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
       try {
         if (isEdit) {
@@ -846,18 +874,27 @@ async function saveIncome(e) {
         } else {
           await window.TavolaraSupabase.createIncome(payload);
         }
+        savedInSb = true;
       } catch (sbErr) {
         console.warn("[Admin] Supabase saveIncome error, fallback:", sbErr);
       }
     }
 
-    if (isEdit) {
-      await apiRequest(`/api/admin/incomes/${idInput}`, "PUT", payload);
-      showToast(`Entrata #${idInput} aggiornata con successo`);
+    if (!savedInSb) {
+      if (isEdit) {
+        await apiRequest(`/api/admin/incomes/${idInput}`, "PUT", payload);
+      } else {
+        await apiRequest("/api/admin/incomes", "POST", payload);
+      }
     } else {
-      await apiRequest("/api/admin/incomes", "POST", payload);
-      showToast("Nuova entrata registrata con successo");
+      if (isEdit) {
+        apiRequest(`/api/admin/incomes/${idInput}`, "PUT", payload).catch(() => {});
+      } else {
+        apiRequest("/api/admin/incomes", "POST", payload).catch(() => {});
+      }
     }
+
+    showToast(isEdit ? `Entrata #${idInput} aggiornata con successo` : "Nuova entrata registrata con successo");
     document.getElementById("modal-income").classList.remove("active");
     loadIncomes();
     loadOverview(); // update global KPI
@@ -869,14 +906,20 @@ async function saveIncome(e) {
 async function deleteIncome(id) {
   if (!confirm(`Sei sicuro di voler eliminare l'entrata #${id}?`)) return;
   try {
+    let deletedInSb = false;
     if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
       try {
         await window.TavolaraSupabase.deleteIncome(id);
+        deletedInSb = true;
       } catch (sbErr) {
         console.warn("[Admin] Supabase deleteIncome error, fallback:", sbErr);
       }
     }
-    await apiRequest(`/api/admin/incomes/${id}`, "DELETE");
+    if (!deletedInSb) {
+      await apiRequest(`/api/admin/incomes/${id}`, "DELETE");
+    } else {
+      apiRequest(`/api/admin/incomes/${id}`, "DELETE").catch(() => {});
+    }
     showToast(`Entrata #${id} eliminata`);
     loadIncomes();
     loadOverview();
@@ -950,14 +993,10 @@ async function openSyncOrdersModal() {
 async function loadExpenses() {
   try {
     let res = null;
+    const { startDate: sDate, endDate: eDate } = computeDateRange(state.period, state.customStartDate, state.customEndDate);
+
     if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
       try {
-        let sDate = null;
-        let eDate = null;
-        if (state.period === "custom") {
-          sDate = state.customStartDate;
-          eDate = state.customEndDate;
-        }
         res = await window.TavolaraSupabase.getExpenses({
           category: state.expenseCategoryTab,
           search: state.expenseSearchQuery,
@@ -971,31 +1010,39 @@ async function loadExpenses() {
 
     if (!res) {
       let url = `/api/admin/expenses?category=${state.expenseCategoryTab}&period=${state.period}&search=${encodeURIComponent(state.expenseSearchQuery)}`;
-      if (state.period === "custom" && state.customStartDate && state.customEndDate) {
-        url += `&start_date=${state.customStartDate}&end_date=${state.customEndDate}`;
+      if (sDate && eDate) {
+        url += `&start_date=${sDate}&end_date=${eDate}`;
       }
       res = await apiRequest(url);
     }
 
-    state.expenses = res.expenses;
-    state.expensesSummary = res.summary;
+    state.expenses = Array.isArray(res?.expenses) ? res.expenses : [];
+    state.expensesSummary = res?.summary || {
+      total_amount: 0,
+      by_category: { trasporto: 0, imballaggio: 0, prove: 0, magliette: 0 },
+      category_metrics: { total_shipments: 0, total_packaging_items: 0, total_shirts_purchased: 0, avg_unit_cost: 0 }
+    };
 
-    renderExpensesMetrics(res.summary);
-    renderExpensesTable(res.expenses);
-    renderExpensesTrendChart(res.expenses);
+    renderExpensesMetrics(state.expensesSummary);
+    renderExpensesTable(state.expenses);
+    renderExpensesTrendChart(state.expenses);
   } catch (err) {
     showToast("Errore caricamento uscite: " + err.message, "error");
   }
 }
 
 function renderExpensesMetrics(summary) {
+  if (!summary) summary = {};
   const cat = state.expenseCategoryTab;
-  const grid = document.getElementById("expenses-metrics-grid");
+  const byCat = summary.by_category || { trasporto: 0, imballaggio: 0, prove: 0, magliette: 0 };
+  const catMetrics = summary.category_metrics || { total_shipments: 0, total_packaging_items: 0, total_shirts_purchased: 0, avg_unit_cost: 0 };
+  const totalAmount = summary.total_amount ?? summary.total ?? 0;
+
   const totalVal = document.getElementById("exp-metric-total");
   const totalCount = document.getElementById("exp-metric-count");
 
-  totalVal.textContent = formatEuro(summary.total_amount);
-  totalCount.textContent = `${state.expenses.length} uscite registrate`;
+  if (totalVal) totalVal.textContent = formatEuro(totalAmount);
+  if (totalCount) totalCount.textContent = `${state.expenses.length} uscite registrate`;
 
   const kpi2Lbl = document.getElementById("exp-metric-kpi2-label");
   const kpi2Val = document.getElementById("exp-metric-kpi2-val");
@@ -1009,12 +1056,14 @@ function renderExpensesMetrics(summary) {
   const kpi4Val = document.getElementById("exp-metric-kpi4-val");
   const kpi4Sub = document.getElementById("exp-metric-kpi4-sub");
 
+  if (!kpi2Lbl) return;
+
   if (cat === "trasporto") {
     kpi2Lbl.textContent = "Spedizioni Totali";
-    kpi2Val.textContent = summary.category_metrics.total_shipments;
+    kpi2Val.textContent = catMetrics.total_shipments || 0;
     kpi2Sub.textContent = "Colli / spedizioni effettuate";
 
-    const avgTrans = summary.category_metrics.total_shipments > 0 ? summary.by_category.trasporto / summary.category_metrics.total_shipments : 0;
+    const avgTrans = catMetrics.total_shipments > 0 ? (byCat.trasporto / catMetrics.total_shipments) : 0;
     kpi3Lbl.textContent = "Costo Medio Spedizione";
     kpi3Val.textContent = formatEuro(avgTrans);
     kpi3Sub.textContent = "Per singola spedizione";
@@ -1025,10 +1074,10 @@ function renderExpensesMetrics(summary) {
 
   } else if (cat === "imballaggio") {
     kpi2Lbl.textContent = "Articoli Acquistati";
-    kpi2Val.textContent = summary.category_metrics.total_packaging_items;
+    kpi2Val.textContent = catMetrics.total_packaging_items || 0;
     kpi2Sub.textContent = "Scatole, buste ed etichette";
 
-    const avgPack = summary.category_metrics.total_packaging_items > 0 ? summary.by_category.imballaggio / summary.category_metrics.total_packaging_items : 0;
+    const avgPack = catMetrics.total_packaging_items > 0 ? (byCat.imballaggio / catMetrics.total_packaging_items) : 0;
     kpi3Lbl.textContent = "Costo Medio Articolo";
     kpi3Val.textContent = formatEuro(avgPack);
     kpi3Sub.textContent = "Per singolo pezzo";
@@ -1043,7 +1092,7 @@ function renderExpensesMetrics(summary) {
     kpi2Sub.textContent = "Campionature e test serigrafia";
 
     kpi3Lbl.textContent = "Totale Speso Prove";
-    kpi3Val.textContent = formatEuro(summary.by_category.prove);
+    kpi3Val.textContent = formatEuro(byCat.prove || 0);
     kpi3Sub.textContent = "Sviluppo prototipale";
 
     kpi4Lbl.textContent = "Incidenza Categoria";
@@ -1052,29 +1101,29 @@ function renderExpensesMetrics(summary) {
 
   } else if (cat === "magliette") {
     kpi2Lbl.textContent = "Magliette Acquistate";
-    kpi2Val.textContent = summary.category_metrics.total_shirts_purchased;
+    kpi2Val.textContent = catMetrics.total_shirts_purchased || 0;
     kpi2Sub.textContent = "Capi complessivi in magazzino";
 
     kpi3Lbl.textContent = "Costo Unitario Medio";
-    kpi3Val.textContent = formatEuro(summary.category_metrics.avg_unit_cost);
+    kpi3Val.textContent = formatEuro(catMetrics.avg_unit_cost || 0);
     kpi3Sub.textContent = "Costo medio acquisto t-shirt";
 
     kpi4Lbl.textContent = "Totale Fornitura Capi";
-    kpi4Val.textContent = formatEuro(summary.by_category.magliette);
+    kpi4Val.textContent = formatEuro(byCat.magliette || 0);
     kpi4Sub.textContent = "Inclusi costi extra lavorazione";
 
   } else {
     // All categories overview
     kpi2Lbl.textContent = "Spese di Trasporto";
-    kpi2Val.textContent = formatEuro(summary.by_category.trasporto);
-    kpi2Sub.textContent = `${summary.category_metrics.total_shipments} spedizioni registrate`;
+    kpi2Val.textContent = formatEuro(byCat.trasporto || 0);
+    kpi2Sub.textContent = `${catMetrics.total_shipments || 0} spedizioni registrate`;
 
     kpi3Lbl.textContent = "Spese di Imballaggio";
-    kpi3Val.textContent = formatEuro(summary.by_category.imballaggio);
-    kpi3Sub.textContent = `${summary.category_metrics.total_packaging_items} packaging acquistati`;
+    kpi3Val.textContent = formatEuro(byCat.imballaggio || 0);
+    kpi3Sub.textContent = `${catMetrics.total_packaging_items || 0} packaging acquistati`;
 
     kpi4Lbl.textContent = "Magliette & Prove";
-    kpi4Val.textContent = formatEuro(summary.by_category.magliette + summary.by_category.prove);
+    kpi4Val.textContent = formatEuro((byCat.magliette || 0) + (byCat.prove || 0));
     kpi4Sub.textContent = "Produzione, prototipi e stock";
   }
 }
@@ -1086,8 +1135,8 @@ function renderExpensesTrendChart(expenses) {
 
   // Group by date
   const dateMap = {};
-  expenses.forEach(e => {
-    dateMap[e.date] = (dateMap[e.date] || 0) + e.amount;
+  (expenses || []).forEach(e => {
+    dateMap[e.date] = (dateMap[e.date] || 0) + (parseFloat(e.amount) || 0);
   });
   const sortedDates = Object.keys(dateMap).sort();
 
@@ -1138,83 +1187,145 @@ function renderExpensesTrendChart(expenses) {
 
 function renderExpensesTable(expenses) {
   const tbody = document.getElementById("expenses-table-body");
-  if (!tbody) return;
-  tbody.innerHTML = "";
+  const mobileContainer = document.getElementById("expenses-mobile-cards");
+  const counterEl = document.getElementById("expenses-table-counter");
 
-  document.getElementById("expenses-table-counter").textContent = `Mostrando ${expenses.length} uscite`;
+  const list = Array.isArray(expenses) ? expenses : [];
+  if (counterEl) {
+    counterEl.textContent = `Mostrando ${list.length} uscite`;
+  }
 
-  if (expenses.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7">
-          <div class="empty-table-state">
-            <div class="empty-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+  if (tbody) tbody.innerHTML = "";
+  if (mobileContainer) mobileContainer.innerHTML = "";
+
+  if (list.length === 0) {
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7">
+            <div class="empty-table-state">
+              <div class="empty-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+              </div>
+              <strong>Nessuna spesa trovata</strong>
+              <p style="font-size: 13px; max-width: 320px;">Registra una nuova spesa per Trasporto, Imballaggio, Prove o Magliette.</p>
             </div>
-            <strong>Nessuna spesa trovata</strong>
-            <p style="font-size: 13px; max-width: 320px;">Registra una nuova spesa per Trasporto, Imballaggio, Prove o Magliette.</p>
+          </td>
+        </tr>
+      `;
+    }
+    if (mobileContainer) {
+      mobileContainer.innerHTML = `
+        <div class="empty-mobile-state">
+          <div class="empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
           </div>
-        </td>
-      </tr>
-    `;
+          <strong>Nessuna spesa trovata</strong>
+          <p>Tocca "+ Registra Spesa" in alto per aggiungere la prima spesa.</p>
+        </div>
+      `;
+    }
     return;
   }
 
-  expenses.forEach(exp => {
-    const tr = document.createElement("tr");
-
-    // Build category specific details badge
+  list.forEach(exp => {
+    // 1. Build category details
     let detailsHtml = "";
+    let detailsText = "";
+    let iconEmoji = "💸";
+
     if (exp.category === "trasporto") {
+      iconEmoji = "🚚";
       detailsHtml = `
         <span><strong>${escapeHtml(exp.carrier || "Corriere")}</strong></span>
         <span style="font-size: 11.5px; color: var(--text-muted);"> • ${exp.shipment_count || 1} sped. (${escapeHtml(exp.shipment_type || "singola")})</span>
       `;
+      detailsText = `${exp.carrier || "Corriere"} • ${exp.shipment_count || 1} sped. (${exp.shipment_type || "singola"})`;
     } else if (exp.category === "imballaggio") {
+      iconEmoji = "📦";
       detailsHtml = `
         <span><strong>${escapeHtml(exp.material_type || "Packaging")}</strong></span>
         ${exp.quantity ? `<span style="font-size: 11.5px; color: var(--text-muted);"> • Q.tà: ${exp.quantity}</span>` : ""}
         ${exp.unit_cost ? `<span style="font-size: 11.5px; color: var(--text-muted);"> (@ ${formatEuro(exp.unit_cost)})</span>` : ""}
       `;
+      detailsText = `${exp.material_type || "Packaging"}${exp.quantity ? ` • Q.tà: ${exp.quantity}` : ""}${exp.unit_cost ? ` (@ ${formatEuro(exp.unit_cost)})` : ""}`;
     } else if (exp.category === "prove") {
+      iconEmoji = "🧪";
       detailsHtml = `
         <span><strong>${escapeHtml(exp.proof_type || "Test prototipo")}</strong></span>
       `;
+      detailsText = `${exp.proof_type || "Test prototipo"}`;
     } else if (exp.category === "magliette") {
+      iconEmoji = "👕";
       detailsHtml = `
         <span><strong>${escapeHtml(exp.supplier || "Fornitore")}</strong></span>
         ${exp.quantity ? `<span style="font-size: 11.5px; color: var(--text-muted);"> • ${exp.quantity} magliette</span>` : ""}
         ${exp.unit_cost ? `<span style="font-size: 11.5px; color: var(--text-muted);"> (@ ${formatEuro(exp.unit_cost)})</span>` : ""}
         ${exp.extra_production_costs ? `<span style="font-size: 11.5px; color: var(--brand-ice);"> [+${formatEuro(exp.extra_production_costs)} extra]</span>` : ""}
       `;
+      detailsText = `${exp.supplier || "Fornitore"}${exp.quantity ? ` • ${exp.quantity} capi` : ""}${exp.unit_cost ? ` (@ ${formatEuro(exp.unit_cost)})` : ""}`;
     }
 
-    tr.innerHTML = `
-      <td>${formatDate(exp.date)}</td>
-      <td><span class="category-chip ${exp.category}">${escapeHtml(exp.category)}</span></td>
-      <td class="fw-bold">${escapeHtml(exp.description)}</td>
-      <td>${detailsHtml || "—"}</td>
-      <td style="text-align: right;" class="fw-bold" style="color: var(--rose);">${formatEuro(exp.amount)}</td>
-      <td style="font-size: 12px; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(exp.notes || '')}">
-        ${escapeHtml(exp.notes || "—")}
-      </td>
-      <td style="text-align: center;">
-        <button type="button" class="table-btn-icon btn-edit-expense" data-id="${exp.id}" title="Modifica">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
-        <button type="button" class="table-btn-icon delete btn-delete-expense" data-id="${exp.id}" title="Elimina">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+    // A) Desktop Table Row
+    if (tbody) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${formatDate(exp.date)}</td>
+        <td><span class="category-chip ${exp.category}">${iconEmoji} ${escapeHtml(exp.category)}</span></td>
+        <td class="fw-bold">${escapeHtml(exp.description)}</td>
+        <td>${detailsHtml || "—"}</td>
+        <td style="text-align: right;" class="fw-bold" style="color: var(--rose);">${formatEuro(exp.amount)}</td>
+        <td style="font-size: 12px; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(exp.notes || '')}">
+          ${escapeHtml(exp.notes || "—")}
+        </td>
+        <td style="text-align: center;">
+          <button type="button" class="table-btn-icon btn-edit-expense" data-id="${exp.id}" title="Modifica">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button type="button" class="table-btn-icon delete btn-delete-expense" data-id="${exp.id}" title="Elimina">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // B) Mobile Card View
+    if (mobileContainer) {
+      const card = document.createElement("div");
+      card.className = "mobile-record-card";
+      card.innerHTML = `
+        <div class="mobile-record-header">
+          <span class="category-chip ${exp.category}">${iconEmoji} ${escapeHtml(exp.category)}</span>
+          <span class="mobile-record-date">${formatDate(exp.date)}</span>
+        </div>
+        <div class="mobile-record-body">
+          <div class="mobile-record-desc">${escapeHtml(exp.description)}</div>
+          <div class="mobile-record-amount rose-val">${formatEuro(exp.amount)}</div>
+        </div>
+        ${detailsText ? `<div class="mobile-record-meta">${escapeHtml(detailsText)}</div>` : ""}
+        ${exp.notes ? `<div class="mobile-record-notes">“${escapeHtml(exp.notes)}”</div>` : ""}
+        <div class="mobile-record-actions">
+          <button type="button" class="mobile-action-btn edit-btn btn-edit-expense" data-id="${exp.id}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span>Modifica</span>
+          </button>
+          <button type="button" class="mobile-action-btn delete-btn btn-delete-expense" data-id="${exp.id}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Elimina</span>
+          </button>
+        </div>
+      `;
+      mobileContainer.appendChild(card);
+    }
   });
 
-  tbody.querySelectorAll(".btn-edit-expense").forEach(btn => {
-    btn.addEventListener("click", () => openExpenseModal(parseInt(btn.dataset.id)));
+  // Attach Event Listeners on both views
+  document.querySelectorAll(".btn-edit-expense").forEach(btn => {
+    btn.onclick = () => openExpenseModal(parseInt(btn.dataset.id));
   });
-  tbody.querySelectorAll(".btn-delete-expense").forEach(btn => {
-    btn.addEventListener("click", () => deleteExpense(parseInt(btn.dataset.id)));
+  document.querySelectorAll(".btn-delete-expense").forEach(btn => {
+    btn.onclick = () => deleteExpense(parseInt(btn.dataset.id));
   });
 }
 
@@ -1336,6 +1447,7 @@ async function saveExpense(e) {
   }
 
   try {
+    let savedInSb = false;
     if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
       try {
         if (isEdit) {
@@ -1343,18 +1455,28 @@ async function saveExpense(e) {
         } else {
           await window.TavolaraSupabase.createExpense(payload);
         }
+        savedInSb = true;
       } catch (sbErr) {
         console.warn("[Admin] Supabase saveExpense error, fallback:", sbErr);
       }
     }
 
-    if (isEdit) {
-      await apiRequest(`/api/admin/expenses/${idInput}`, "PUT", payload);
-      showToast(`Spesa #${idInput} aggiornata con successo`);
+    if (!savedInSb) {
+      if (isEdit) {
+        await apiRequest(`/api/admin/expenses/${idInput}`, "PUT", payload);
+      } else {
+        await apiRequest("/api/admin/expenses", "POST", payload);
+      }
     } else {
-      await apiRequest("/api/admin/expenses", "POST", payload);
-      showToast("Nuova spesa registrata con successo");
+      // Background non-blocking sync to SQLite if online
+      if (isEdit) {
+        apiRequest(`/api/admin/expenses/${idInput}`, "PUT", payload).catch(() => {});
+      } else {
+        apiRequest("/api/admin/expenses", "POST", payload).catch(() => {});
+      }
     }
+
+    showToast(isEdit ? `Spesa #${idInput} aggiornata con successo` : "Nuova spesa registrata con successo");
     document.getElementById("modal-expense").classList.remove("active");
     loadExpenses();
     loadOverview();
@@ -1366,14 +1488,20 @@ async function saveExpense(e) {
 async function deleteExpense(id) {
   if (!confirm(`Sei sicuro di voler eliminare la spesa #${id}?`)) return;
   try {
+    let deletedInSb = false;
     if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
       try {
         await window.TavolaraSupabase.deleteExpense(id);
+        deletedInSb = true;
       } catch (sbErr) {
         console.warn("[Admin] Supabase deleteExpense error, fallback:", sbErr);
       }
     }
-    await apiRequest(`/api/admin/expenses/${id}`, "DELETE");
+    if (!deletedInSb) {
+      await apiRequest(`/api/admin/expenses/${id}`, "DELETE");
+    } else {
+      apiRequest(`/api/admin/expenses/${id}`, "DELETE").catch(() => {});
+    }
     showToast(`Spesa #${id} eliminata`);
     loadExpenses();
     loadOverview();
@@ -2130,12 +2258,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("fab-add-income")?.addEventListener("click", () => {
     fabContainer?.classList.remove("active");
-    openAddIncomeModal();
+    openIncomeModal();
   });
 
   document.getElementById("fab-add-expense")?.addEventListener("click", () => {
     fabContainer?.classList.remove("active");
-    openAddExpenseModal();
+    openExpenseModal();
   });
 
   document.addEventListener("click", (e) => {

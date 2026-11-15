@@ -3,7 +3,7 @@
  * Ensures every GitHub/Vercel deploy updates instantly on all mobile devices.
  */
 
-const CACHE_NAME = "tavolara-pwa-v4";
+const CACHE_NAME = "tavolara-pwa-v5";
 
 self.addEventListener("install", (event) => {
   // Activate immediately

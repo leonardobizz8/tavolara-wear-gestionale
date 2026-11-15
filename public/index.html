@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/css/admin.css?v=3.5">
+  <link rel="stylesheet" href="/css/admin.css?v=3.6">
   
   <!-- Local self-contained Chart.js -->
   <script src="/js/chart.umd.min.js"></script>
@@ -491,20 +491,22 @@
         <!-- ======================================================== -->
         <section id="view-passivo" class="view-section">
           
-          <!-- Category Selector (Apple Segmented Bar) -->
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-            <div class="segmented-control" id="expenses-category-tabs" style="padding: 5px;">
-              <button type="button" class="segment-item active" data-cat="all">Tutte le Spese</button>
-              <button type="button" class="segment-item" data-cat="trasporto">🚚 Trasporto</button>
-              <button type="button" class="segment-item" data-cat="imballaggio">📦 Imballaggio</button>
-              <button type="button" class="segment-item" data-cat="prove">🧪 Prove & Sviluppo</button>
-              <button type="button" class="segment-item" data-cat="magliette">👕 Magliette</button>
+          <!-- Category Selector & Mobile Action Bar -->
+          <div class="expenses-header-bar">
+            <div class="expenses-category-scroll">
+              <div class="segmented-control" id="expenses-category-tabs">
+                <button type="button" class="segment-item active" data-cat="all">Tutte le Spese</button>
+                <button type="button" class="segment-item" data-cat="trasporto">🚚 Trasporto</button>
+                <button type="button" class="segment-item" data-cat="imballaggio">📦 Imballaggio</button>
+                <button type="button" class="segment-item" data-cat="prove">🧪 Prove & Sviluppo</button>
+                <button type="button" class="segment-item" data-cat="magliette">👕 Magliette</button>
+              </div>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="expenses-actions-bar">
               <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-expenses-csv">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Esporta CSV
+                <span>Esporta CSV</span>
               </button>
 
               <button type="button" class="apple-btn apple-btn-rose apple-btn-sm" id="btn-add-expense">
@@ -554,7 +556,7 @@
             </div>
           </div>
 
-          <!-- Interactive Expenses Table -->
+          <!-- Interactive Expenses Table (Desktop) & Cards (Mobile) -->
           <div class="glass-card table-card">
             <div class="table-toolbar">
               <div class="table-search-box">
@@ -564,7 +566,8 @@
               <div style="font-size: 12px; color: var(--text-muted);" id="expenses-table-counter">Mostrando 0 uscite</div>
             </div>
 
-            <div class="apple-table-wrapper">
+            <!-- Desktop View: Full Table -->
+            <div class="apple-table-wrapper desktop-only-table">
               <table class="apple-table">
                 <thead>
                   <tr>
@@ -581,6 +584,11 @@
                   <!-- Injected via JavaScript -->
                 </tbody>
               </table>
+            </div>
+
+            <!-- Mobile View: Clean Touch-Friendly Cards -->
+            <div class="mobile-records-list" id="expenses-mobile-cards">
+              <!-- Injected via JavaScript on mobile -->
             </div>
           </div>
         </section>
@@ -1372,8 +1380,8 @@
 
   <!-- Supabase JS Client Integration -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/supabaseClient.js?v=3.5"></script>
+  <script src="/js/supabaseClient.js?v=3.6"></script>
   <!-- App Logic -->
-  <script src="/js/admin.js?v=3.5"></script>
+  <script src="/js/admin.js?v=3.6"></script>
 </body>
 </html>

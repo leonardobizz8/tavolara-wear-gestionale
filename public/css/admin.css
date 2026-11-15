@@ -1458,6 +1458,159 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Expenses Section Layout & Mobile Records Card Components */
+.expenses-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.expenses-category-scroll {
+  min-width: 0;
+}
+
+.expenses-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mobile-records-list {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 10px;
+}
+
+.mobile-record-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-main);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.mobile-record-card:active {
+  transform: scale(0.99);
+}
+
+.mobile-record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-record-date {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.mobile-record-body {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-record-desc {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+
+.mobile-record-amount {
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mobile-record-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-card-subtle);
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.mobile-record-notes {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding-left: 2px;
+}
+
+.mobile-record-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-light, #F0EFEA);
+}
+
+.mobile-action-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border-main);
+  background: #FAF9F6;
+  color: var(--text-main);
+  min-height: 36px;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-action-btn.edit-btn:active {
+  background: #EAE7E0;
+}
+
+.mobile-action-btn.delete-btn {
+  color: var(--brick);
+  border-color: #F8D7DA;
+  background: #FFF8F8;
+}
+
+.mobile-action-btn.delete-btn:active {
+  background: #FEE2E2;
+}
+
+.empty-mobile-state {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-muted);
+}
+
+.empty-mobile-state strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-main);
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.empty-mobile-state p {
+  font-size: 12px;
+  margin: 0;
+}
+
 /* --------------------------------------------------------------------------
    RESPONSIVE DESIGN (TABLETS & SMARTPHONES)
    -------------------------------------------------------------------------- */
@@ -1807,24 +1960,101 @@ body {
     align-items: flex-end;
     padding: 0;
   }
-  .modal-card {
+  .modal-sheet, .modal-card {
     width: 100% !important;
     max-width: 100% !important;
     border-radius: 20px 20px 0 0 !important;
     max-height: 88vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 12px)) 16px !important;
-    animation: slideUpBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border-bottom: none !important;
+    animation: slideUpBottom 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .modal-card::before {
+  .modal-sheet::before, .modal-card::before {
     content: "";
     display: block;
     width: 36px;
     height: 4px;
     background: #D8D6CE;
     border-radius: 2px;
-    margin: -6px auto 14px auto;
+    margin: 8px auto 0 auto;
+  }
+  .modal-header {
+    padding: 14px 18px;
+  }
+  .modal-title {
+    font-size: 16.5px;
+  }
+  .modal-body {
+    padding: 14px 16px;
+    max-height: calc(88vh - 130px);
+    gap: 12px;
+  }
+  .modal-footer {
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 12px)) 16px;
+    gap: 8px;
+  }
+  .modal-footer .apple-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 42px;
+    font-size: 13.5px;
+  }
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Expenses Section Mobile Header & Category Bar */
+  .expenses-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .expenses-category-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    width: 100%;
+  }
+  .expenses-category-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .expenses-category-scroll .segmented-control {
+    display: flex;
+    flex-wrap: nowrap;
+    width: max-content;
+    gap: 4px;
+    padding: 3px;
+    background: #EAE7E0;
+  }
+  .expenses-category-scroll .segment-item {
+    flex-shrink: 0;
+    padding: 5px 11px;
+    font-size: 11.5px;
+    min-height: 32px;
+    white-space: nowrap;
+  }
+  .expenses-actions-bar {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+  .expenses-actions-bar .apple-btn {
+    flex: 1;
+    justify-content: center;
+    min-height: 38px;
+    font-size: 12.5px;
+  }
+
+  /* Tables: Card Container with Smooth Horizontal Scroll */
+  .desktop-only-table {
+    display: none !important;
+  }
+  .mobile-records-list {
+    display: flex !important;
   }
 
   @keyframes slideUpBottom {
