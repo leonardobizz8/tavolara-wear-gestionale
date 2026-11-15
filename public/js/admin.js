@@ -396,33 +396,71 @@ async function loadOverview() {
     state.overviewData = res;
 
     // Render Hero KPIs
-    const k = res.kpis;
-    document.getElementById("ov-total-incomes").textContent = formatEuro(k.total_incomes);
-    document.getElementById("ov-total-expenses").textContent = formatEuro(k.total_expenses);
+    const k = res?.kpis || {};
+    const totalIncomes = k.total_incomes ?? 0;
+    const totalExpenses = k.total_expenses ?? 0;
+    const currentBal = k.current_balance ?? (totalIncomes - totalExpenses);
+    const grossProfit = k.gross_profit ?? currentBal;
+    const grossMargin = k.gross_profit_margin ?? (totalIncomes > 0 ? (grossProfit / totalIncomes) * 100 : 0);
+
+    const elTotalIncomes = document.getElementById("ov-total-incomes");
+    if (elTotalIncomes) elTotalIncomes.textContent = formatEuro(totalIncomes);
+
+    const elTotalExpenses = document.getElementById("ov-total-expenses");
+    if (elTotalExpenses) elTotalExpenses.textContent = formatEuro(totalExpenses);
     
     const balEl = document.getElementById("ov-current-balance");
-    balEl.textContent = formatEuro(k.current_balance);
-    balEl.className = "kpi-value " + (k.current_balance >= 0 ? "emerald-val" : "rose-val");
+    if (balEl) {
+      balEl.textContent = formatEuro(currentBal);
+      balEl.className = "kpi-value " + (currentBal >= 0 ? "emerald-val" : "rose-val");
+    }
 
-    document.getElementById("ov-gross-profit").textContent = formatEuro(k.gross_profit);
-    document.getElementById("ov-gross-margin").textContent = `Margine: ${k.gross_profit_margin.toFixed(1)}%`;
+    const elGrossProfit = document.getElementById("ov-gross-profit");
+    if (elGrossProfit) elGrossProfit.textContent = formatEuro(grossProfit);
 
-    document.getElementById("ov-incomes-sub").textContent = `Incassate: ${formatEuro(k.incomes_breakdown.collected)}`;
-    document.getElementById("ov-expenses-sub").textContent = `4 categorie | ${k.expenses_breakdown.count} registrazioni`;
+    const elGrossMargin = document.getElementById("ov-gross-margin");
+    if (elGrossMargin) elGrossMargin.textContent = `Margine: ${Number(grossMargin).toFixed(1)}%`;
 
-    // Secondary KPIs
-    document.getElementById("ov-shirts-sold").textContent = k.total_shirts_sold;
-    document.getElementById("ov-orders-count").textContent = k.total_orders_count;
-    document.getElementById("ov-avg-shirt-cost").textContent = formatEuro(k.avg_shirt_cost);
-    document.getElementById("ov-avg-order-rev").textContent = formatEuro(k.avg_order_revenue);
+    const incCollected = k.incomes_breakdown?.collected ?? 0;
+    const expCount = k.expenses_breakdown?.count ?? 0;
+    const incCount = k.incomes_breakdown?.count ?? 0;
+
+    const elIncomesSub = document.getElementById("ov-incomes-sub");
+    if (elIncomesSub) elIncomesSub.textContent = `Incassate: ${formatEuro(incCollected)}`;
+
+    const elExpensesSub = document.getElementById("ov-expenses-sub");
+    if (elExpensesSub) elExpensesSub.textContent = `4 categorie | ${expCount} registrazioni`;
+
+    // Secondary KPIs (supports both schema conventions)
+    const shirtsSold = k.total_shirts_sold ?? k.shirts_sold ?? 0;
+    const ordersCount = k.total_orders_count ?? k.orders_count ?? 0;
+    const avgShirtCost = k.avg_shirt_cost ?? k.average_shirt_cost ?? 0;
+    const avgOrderRev = k.avg_order_revenue ?? k.average_order_revenue ?? 0;
+
+    const elShirtsSold = document.getElementById("ov-shirts-sold");
+    if (elShirtsSold) elShirtsSold.textContent = shirtsSold;
+
+    const elOrdersCount = document.getElementById("ov-orders-count");
+    if (elOrdersCount) elOrdersCount.textContent = ordersCount;
+
+    const elAvgShirtCost = document.getElementById("ov-avg-shirt-cost");
+    if (elAvgShirtCost) elAvgShirtCost.textContent = formatEuro(avgShirtCost);
+
+    const elAvgOrderRev = document.getElementById("ov-avg-order-rev");
+    if (elAvgOrderRev) elAvgOrderRev.textContent = formatEuro(avgOrderRev);
 
     // Update sidebar badges
-    document.getElementById("side-badge-incomes").textContent = k.incomes_breakdown.count;
-    document.getElementById("side-badge-expenses").textContent = k.expenses_breakdown.count;
-    document.getElementById("side-badge-orders").textContent = k.total_orders_count;
+    const sideBadgeIncomes = document.getElementById("side-badge-incomes");
+    if (sideBadgeIncomes) sideBadgeIncomes.textContent = incCount;
 
-    // Render Charts
-    renderOverviewCharts(res.charts);
+    const sideBadgeExpenses = document.getElementById("side-badge-expenses");
+    if (sideBadgeExpenses) sideBadgeExpenses.textContent = expCount;
+
+    const sideBadgeOrders = document.getElementById("side-badge-orders");
+    if (sideBadgeOrders) sideBadgeOrders.textContent = ordersCount;
+
+    // Render Charts safely
+    renderOverviewCharts(res?.charts || {});
   } catch (err) {
     showToast("Errore caricamento Overview: " + err.message, "error");
   }
@@ -430,15 +468,21 @@ async function loadOverview() {
 
 function renderOverviewCharts(chartsData) {
   if (!window.Chart) return;
+  if (!chartsData) chartsData = {};
+
+  const cashflowTimeline = Array.isArray(chartsData.cashflow_timeline) ? chartsData.cashflow_timeline : [];
+  const balanceTimeline = Array.isArray(chartsData.balance_timeline) ? chartsData.balance_timeline : [];
+  const catData = chartsData.expenses_by_category || { labels: ["Trasporto", "Imballaggio", "Prove", "Magliette"], values: [0, 0, 0, 0] };
+  const salesTimeline = Array.isArray(chartsData.sales_timeline) ? chartsData.sales_timeline : [];
 
   // Chart 1: Cashflow Timeline (Incomes vs Expenses)
   const ctxCashflow = document.getElementById("chart-cashflow")?.getContext("2d");
   if (ctxCashflow) {
     if (charts.cashflow) charts.cashflow.destroy();
 
-    const labels = chartsData.cashflow_timeline.map(d => formatDate(d.date));
-    const incomesData = chartsData.cashflow_timeline.map(d => d.incomes);
-    const expensesData = chartsData.cashflow_timeline.map(d => d.expenses);
+    const labels = cashflowTimeline.map(d => formatDate(d.date));
+    const incomesData = cashflowTimeline.map(d => d.incomes);
+    const expensesData = cashflowTimeline.map(d => d.expenses);
 
     charts.cashflow = new Chart(ctxCashflow, {
       type: "bar",
@@ -488,8 +532,8 @@ function renderOverviewCharts(chartsData) {
   if (ctxBalance) {
     if (charts.balance) charts.balance.destroy();
 
-    const labels = chartsData.balance_timeline.map(d => formatDate(d.date));
-    const balanceData = chartsData.balance_timeline.map(d => d.balance);
+    const labels = balanceTimeline.map(d => formatDate(d.date));
+    const balanceData = balanceTimeline.map(d => d.balance);
 
     const grad = ctxBalance.createLinearGradient(0, 0, 0, 240);
     grad.addColorStop(0, "rgba(196, 119, 91, 0.18)");
@@ -539,16 +583,17 @@ function renderOverviewCharts(chartsData) {
   if (ctxCat) {
     if (charts.expensesCat) charts.expensesCat.destroy();
 
-    const catData = chartsData.expenses_by_category;
-    const hasValues = catData.values.some(v => v > 0);
+    const values = Array.isArray(catData.values) ? catData.values : [0, 0, 0, 0];
+    const labels = Array.isArray(catData.labels) ? catData.labels : ["Trasporto", "Imballaggio", "Prove", "Magliette"];
+    const hasValues = values.some(v => v > 0);
     const claudePalette = ["#3B7A9E", "#A76B29", "#6E4973", "#1F364D"];
 
     charts.expensesCat = new Chart(ctxCat, {
       type: "doughnut",
       data: {
-        labels: catData.labels,
+        labels: labels,
         datasets: [{
-          data: hasValues ? catData.values : [1, 1, 1, 1],
+          data: hasValues ? values : [1, 1, 1, 1],
           backgroundColor: hasValues ? claudePalette : ["#E5E3DD", "#E5E3DD", "#E5E3DD", "#E5E3DD"],
           borderWidth: 2,
           borderColor: "#FFFFFF"
@@ -578,9 +623,9 @@ function renderOverviewCharts(chartsData) {
   if (ctxSales) {
     if (charts.sales) charts.sales.destroy();
 
-    const labels = chartsData.sales_timeline.map(d => formatDate(d.date));
-    const shirtsData = chartsData.sales_timeline.map(d => d.shirts);
-    const revData = chartsData.sales_timeline.map(d => d.revenue);
+    const labels = salesTimeline.map(d => formatDate(d.date));
+    const shirtsData = salesTimeline.map(d => d.shirts);
+    const revData = salesTimeline.map(d => d.revenue);
 
     charts.sales = new Chart(ctxSales, {
       type: "line",

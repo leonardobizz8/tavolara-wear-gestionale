@@ -791,8 +791,7 @@
 
       // 1. Fetch transactions (Attivo)
       const incRes = await this.getIncomes({ startDate, endDate });
-
-      // Criterio rigoroso: entrate = incassi effettivi (Incassata + Confermata)
+      const totalIncomes = incRes?.total || 0;
       const collectedIncomes = (incRes?.collected || 0) + (incRes?.confirmed || 0);
 
       // 2. Fetch expenses (Passivo nelle 4 categorie)
@@ -800,9 +799,10 @@
       const totalExpenses = expRes?.total || 0;
 
       // 3. Current balance & gross margin
-      const currentBalance = collectedIncomes - totalExpenses;
-      const grossProfit = currentBalance;
-      const grossProfitMargin = collectedIncomes > 0 ? (grossProfit / collectedIncomes) * 100 : 0;
+      const currentBalance = totalIncomes - totalExpenses;
+      const directProductionCost = (expRes?.breakdown?.magliette || 0) + (expRes?.breakdown?.prove || 0);
+      const grossProfit = totalIncomes > 0 ? (totalIncomes - directProductionCost) : -totalExpenses;
+      const grossProfitMargin = totalIncomes > 0 ? ((grossProfit / totalIncomes) * 100) : 0;
 
       // 4. Fetch orders & shirts sold
       let ordQuery = this.client
@@ -818,43 +818,95 @@
       const ordersCount = activeOrders.length;
 
       let shirtsSold = 0;
+      let orderTurnover = 0;
       activeOrders.forEach(o => {
+        orderTurnover += parseFloat(o.total_amount) || 0;
         (o.order_items || []).forEach(it => {
           shirtsSold += (it.quantity || 0);
         });
       });
 
-      const avgShirtCost = shirtsSold > 0 ? ((expRes?.breakdown?.magliette || 0) / shirtsSold) : 0;
-      const avgOrderRev = ordersCount > 0 ? (collectedIncomes / ordersCount) : 0;
+      // Quantity from expenses
+      const purchasedShirts = (expRes?.expenses || [])
+        .filter(e => e.category === "magliette" || e.category_code === "magliette")
+        .reduce((s, e) => s + (parseInt(e.quantity, 10) || 0), 0);
+
+      const expMagliette = expRes?.breakdown?.magliette || 0;
+      const avgShirtCost = purchasedShirts > 0
+        ? (expMagliette / purchasedShirts)
+        : (shirtsSold > 0 && expMagliette > 0 ? (expMagliette / shirtsSold) : 0);
+
+      const avgOrderRev = ordersCount > 0 ? (orderTurnover / ordersCount) : 0;
 
       // 5. Generate daily time series for charts
       const timeSeries = this._buildTimeSeries(incRes?.incomes || [], expRes?.expenses || [], activeOrders, startDate, endDate);
 
+      const cashflowTimeline = timeSeries.map(d => ({
+        date: d.date,
+        incomes: d.incomes,
+        expenses: d.expenses
+      }));
+
+      const balanceTimeline = timeSeries.map(d => ({
+        date: d.date,
+        balance: d.balance
+      }));
+
+      const salesTimeline = timeSeries.map(d => ({
+        date: d.date,
+        orders: d.orders || (d.shirts > 0 ? 1 : 0),
+        shirts: d.shirts || 0,
+        revenue: d.incomes || 0
+      }));
+
+      const expensesByCategory = {
+        labels: ["Trasporto", "Imballaggio", "Prove", "Magliette"],
+        values: [
+          expRes?.breakdown?.trasporto || 0,
+          expRes?.breakdown?.imballaggio || 0,
+          expRes?.breakdown?.prove || 0,
+          expRes?.breakdown?.magliette || 0
+        ],
+        colors: ["#3B7A9E", "#A76B29", "#6E4973", "#1F364D"]
+      };
+
+      const kpis = {
+        total_incomes: Math.round(totalIncomes * 100) / 100,
+        total_expenses: Math.round(totalExpenses * 100) / 100,
+        current_balance: Math.round(currentBalance * 100) / 100,
+        gross_profit: Math.round(grossProfit * 100) / 100,
+        gross_profit_margin: Math.round(grossProfitMargin * 10) / 10,
+        total_shirts_sold: shirtsSold,
+        shirts_sold: shirtsSold,
+        total_orders_count: ordersCount,
+        orders_count: ordersCount,
+        avg_shirt_cost: Math.round(avgShirtCost * 100) / 100,
+        average_shirt_cost: Math.round(avgShirtCost * 100) / 100,
+        avg_order_revenue: Math.round(avgOrderRev * 100) / 100,
+        average_order_revenue: Math.round(avgOrderRev * 100) / 100,
+        incomes_breakdown: {
+          total: incRes?.total || 0,
+          collected: incRes?.collected || 0,
+          confirmed: incRes?.confirmed || 0,
+          pending: incRes?.pending || 0,
+          count: incRes?.count || 0
+        },
+        expenses_breakdown: {
+          trasporto: expRes?.breakdown?.trasporto || 0,
+          imballaggio: expRes?.breakdown?.imballaggio || 0,
+          prove: expRes?.breakdown?.prove || 0,
+          magliette: expRes?.breakdown?.magliette || 0,
+          count: expRes?.count || 0
+        }
+      };
+
       return {
-        kpis: {
-          total_incomes: collectedIncomes,
-          incomes_breakdown: {
-            total: incRes?.total || 0,
-            collected: incRes?.collected || 0,
-            confirmed: incRes?.confirmed || 0,
-            pending: incRes?.pending || 0,
-            count: incRes?.count || 0
-          },
-          total_expenses: totalExpenses,
-          expenses_breakdown: {
-            trasporto: expRes?.breakdown?.trasporto || 0,
-            imballaggio: expRes?.breakdown?.imballaggio || 0,
-            prove: expRes?.breakdown?.prove || 0,
-            magliette: expRes?.breakdown?.magliette || 0,
-            count: expRes?.count || 0
-          },
-          current_balance: currentBalance,
-          gross_profit: grossProfit,
-          gross_profit_margin: grossProfitMargin,
-          shirts_sold: shirtsSold,
-          orders_count: ordersCount,
-          average_shirt_cost: avgShirtCost,
-          average_order_revenue: avgOrderRev
+        kpis,
+        charts: {
+          cashflow_timeline: cashflowTimeline,
+          balance_timeline: balanceTimeline,
+          expenses_by_category: expensesByCategory,
+          sales_timeline: salesTimeline
         },
         time_series: timeSeries,
         date_range: {
@@ -873,23 +925,22 @@
       incomes.forEach(i => {
         const k = getDayKey(i.date);
         if (!k) return;
-        if (!dayMap[k]) dayMap[k] = { date: k, income: 0, expense: 0, shirts: 0, balance: 0 };
-        if (i.status === "Incassata" || i.status === "Confermata") {
-          dayMap[k].income += parseFloat(i.amount) || 0;
-        }
+        if (!dayMap[k]) dayMap[k] = { date: k, income: 0, expense: 0, shirts: 0, orders: 0, balance: 0 };
+        dayMap[k].income += parseFloat(i.amount) || 0;
       });
 
       expenses.forEach(e => {
         const k = getDayKey(e.date);
         if (!k) return;
-        if (!dayMap[k]) dayMap[k] = { date: k, income: 0, expense: 0, shirts: 0, balance: 0 };
+        if (!dayMap[k]) dayMap[k] = { date: k, income: 0, expense: 0, shirts: 0, orders: 0, balance: 0 };
         dayMap[k].expense += parseFloat(e.amount) || 0;
       });
 
       orders.forEach(o => {
         const k = getDayKey(o.created_at);
         if (!k) return;
-        if (!dayMap[k]) dayMap[k] = { date: k, income: 0, expense: 0, shirts: 0, balance: 0 };
+        if (!dayMap[k]) dayMap[k] = { date: k, income: 0, expense: 0, shirts: 0, orders: 0, balance: 0 };
+        dayMap[k].orders += 1;
         (o.order_items || []).forEach(it => {
           dayMap[k].shirts += (it.quantity || 0);
         });
@@ -905,6 +956,7 @@
           incomes: item.income,
           expenses: item.expense,
           shirts: item.shirts,
+          orders: item.orders,
           balance: runningBalance
         };
       });

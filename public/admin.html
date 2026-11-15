@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/css/admin.css?v=3.2">
+  <link rel="stylesheet" href="/css/admin.css?v=3.5">
   
   <!-- Local self-contained Chart.js -->
   <script src="/js/chart.umd.min.js"></script>
@@ -190,12 +190,12 @@
         <div class="header-right">
           <!-- Time Range Segmented Control -->
           <div class="segmented-control" id="time-filter-control">
-            <button type="button" class="segment-item" data-period="today">Oggi</button>
-            <button type="button" class="segment-item" data-period="week">Settimana</button>
+            <button type="button" class="segment-item active" data-period="all">Tutto</button>
             <button type="button" class="segment-item" data-period="month">Mese</button>
             <button type="button" class="segment-item" data-period="quarter">Trimestre</button>
             <button type="button" class="segment-item" data-period="year">Anno</button>
-            <button type="button" class="segment-item active" data-period="all">Tutto</button>
+            <button type="button" class="segment-item" data-period="week">Settimana</button>
+            <button type="button" class="segment-item" data-period="today">Oggi</button>
             <button type="button" class="segment-item" data-period="custom">📅 Date</button>
           </div>
 
@@ -1372,8 +1372,8 @@
 
   <!-- Supabase JS Client Integration -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/supabaseClient.js"></script>
+  <script src="/js/supabaseClient.js?v=3.5"></script>
   <!-- App Logic -->
-  <script src="/js/admin.js?v=3.2"></script>
+  <script src="/js/admin.js?v=3.5"></script>
 </body>
 </html>
