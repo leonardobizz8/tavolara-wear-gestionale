@@ -37,7 +37,11 @@ const state = {
   ordersSearchQuery: "",
   
   variants: [],
-  config: {}
+  config: {},
+  sociRatio: 50,
+  sociData: null,
+  sociOrdersSearch: "",
+  sociOrdersStatus: "all"
 };
 
 // Global chart references
@@ -48,7 +52,9 @@ const charts = {
   sales: null,
   expensesTrend: null,
   insightsColor: null,
-  insightsSize: null
+  insightsSize: null,
+  sociDonut: null,
+  sociTimeline: null
 };
 
 // ---------------------------------------------------------------------------
@@ -313,6 +319,7 @@ function switchView(viewName) {
   // Update top header titles
   const titles = {
     overview: { title: "Overview Finanziaria", sub: "Quadro economico consolidato e KPI Tavolara Wear" },
+    soci: { title: "Ripartizione Utili Soci", sub: "Divisione utile netto tra Andrea Palamidesi (Pala) e Leonardo Bizzotto (Leo)" },
     attivo: { title: "Attivo (Entrate)", sub: "Monitoraggio incassi, conferme ed entrate commerciali" },
     passivo: { title: "Passivo (Uscite & Spese)", sub: "Gestione analitica di trasporto, imballaggio, prove e magliette" },
     insights: { title: "Insights & Analytics", sub: "Spaccato vendite per colore, taglie, matrice e redditività" },
@@ -331,6 +338,9 @@ function refreshCurrentView() {
   switch (state.currentView) {
     case "overview":
       loadOverview();
+      break;
+    case "soci":
+      loadSociProfit();
       break;
     case "attivo":
       loadIncomes();
@@ -490,11 +500,46 @@ async function loadOverview() {
     const sideBadgeOrders = document.getElementById("side-badge-orders");
     if (sideBadgeOrders) sideBadgeOrders.textContent = ordersCount;
 
+    // Render Partner Profit Overview Preview
+    renderSociOverviewWidget(res);
+
     // Render Charts safely
     renderOverviewCharts(res?.charts || {});
   } catch (err) {
     showToast("Errore caricamento Overview: " + err.message, "error");
   }
+}
+
+function renderSociOverviewWidget(ovRes) {
+  const k = ovRes?.kpis || {};
+  const totalIncomes = k.total_incomes ?? 0;
+  const totalExpenses = k.total_expenses ?? 0;
+  const currentBal = k.current_balance ?? (totalIncomes - totalExpenses);
+  const grossProfit = k.gross_profit ?? currentBal;
+  const palaRatio = (state.sociRatio || 50) / 100;
+  const leoRatio = 1 - palaRatio;
+
+  const profitToSplit = grossProfit || currentBal;
+  const palaProfit = Math.round(profitToSplit * palaRatio * 100) / 100;
+  const leoProfit = Math.round(profitToSplit * leoRatio * 100) / 100;
+
+  const elTot = document.getElementById("ov-soci-total-profit");
+  if (elTot) elTot.textContent = formatEuro(profitToSplit);
+
+  const elPala = document.getElementById("ov-soci-pala-profit");
+  if (elPala) elPala.textContent = formatEuro(palaProfit);
+
+  const elLeo = document.getElementById("ov-soci-leo-profit");
+  if (elLeo) elLeo.textContent = formatEuro(leoProfit);
+
+  const elPalaSub = document.getElementById("ov-soci-pala-sub");
+  if (elPalaSub) elPalaSub.textContent = `Quota ${Math.round(palaRatio * 100)}% · Maturato`;
+
+  const elLeoSub = document.getElementById("ov-soci-leo-sub");
+  if (elLeoSub) elLeoSub.textContent = `Quota ${Math.round(leoRatio * 100)}% · Maturato`;
+
+  const elRatioPill = document.getElementById("ov-soci-ratio-pill");
+  if (elRatioPill) elRatioPill.textContent = `Quote ${Math.round(palaRatio * 100)} / ${Math.round(leoRatio * 100)}`;
 }
 
 function renderOverviewCharts(chartsData) {
@@ -1728,6 +1773,415 @@ function renderEconomicStats(econ) {
 }
 
 // ---------------------------------------------------------------------------
+// 9B. SOCI PROFIT VIEW (RIPARTIZIONE UTILI: PALA & LEO)
+// ---------------------------------------------------------------------------
+async function loadSociProfit() {
+  try {
+    const palaRatio = (state.sociRatio || 50) / 100;
+    const leoRatio = 1 - palaRatio;
+
+    let res = null;
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      try {
+        res = await window.TavolaraSupabase.getPartnersProfit(state.period, state.customStartDate, state.customEndDate, palaRatio, leoRatio);
+      } catch (sbErr) {
+        console.warn("[Admin] Supabase getPartnersProfit error, fallback:", sbErr);
+      }
+    }
+
+    if (!res) {
+      let url = `/api/admin/financial/partners?period=${state.period}&pala_ratio=${palaRatio}&leo_ratio=${leoRatio}`;
+      if (state.period === "custom" && state.customStartDate && state.customEndDate) {
+        url += `&start_date=${state.customStartDate}&end_date=${state.customEndDate}`;
+      }
+      res = await apiRequest(url);
+    }
+
+    state.sociData = res;
+
+    // 1. Update Hero KPIs
+    const k = res?.kpis || {};
+    const totalProfit = k.total_profit ?? 0;
+    const palaNet = k.pala?.total_profit ?? Math.round(totalProfit * palaRatio * 100) / 100;
+    const leoNet = k.leo?.total_profit ?? Math.round(totalProfit * leoRatio * 100) / 100;
+
+    const elTotalProfit = document.getElementById("soci-kpi-total-profit");
+    if (elTotalProfit) {
+      elTotalProfit.textContent = formatEuro(totalProfit);
+      elTotalProfit.className = "kpi-value " + (totalProfit >= 0 ? "emerald-val" : "rose-val");
+    }
+
+    const elTotalDetail = document.getElementById("soci-kpi-total-detail");
+    if (elTotalDetail) {
+      elTotalDetail.textContent = `Fatturato: ${formatEuro(k.total_revenue || 0)} · Costi: ${formatEuro(k.total_costs || 0)}`;
+    }
+
+    const elTotalMargin = document.getElementById("soci-kpi-total-margin");
+    if (elTotalMargin) {
+      elTotalMargin.textContent = `Margine: ${Number(k.margin_percentage || 0).toFixed(1)}%`;
+    }
+
+    const elPalaProfit = document.getElementById("soci-kpi-pala-profit");
+    if (elPalaProfit) elPalaProfit.textContent = formatEuro(palaNet);
+
+    const elLeoProfit = document.getElementById("soci-kpi-leo-profit");
+    if (elLeoProfit) elLeoProfit.textContent = formatEuro(leoNet);
+
+    const elPalaSub = document.getElementById("soci-kpi-pala-sub");
+    if (elPalaSub) {
+      elPalaSub.textContent = `Incassato: ${formatEuro(k.pala?.collected_profit || 0)} · In attesa: ${formatEuro(k.pala?.pending_profit || 0)}`;
+    }
+
+    const elLeoSub = document.getElementById("soci-kpi-leo-sub");
+    if (elLeoSub) {
+      elLeoSub.textContent = `Incassato: ${formatEuro(k.leo?.collected_profit || 0)} · In attesa: ${formatEuro(k.leo?.pending_profit || 0)}`;
+    }
+
+    // Ratio badges
+    const badgePalaRatio = document.getElementById("soci-badge-pala-ratio");
+    if (badgePalaRatio) badgePalaRatio.textContent = `Quota ${Math.round(palaRatio * 100)}%`;
+
+    const badgeLeoRatio = document.getElementById("soci-badge-leo-ratio");
+    if (badgeLeoRatio) badgeLeoRatio.textContent = `Quota ${Math.round(leoRatio * 100)}%`;
+
+    const indicator = document.getElementById("soci-ratio-indicator");
+    if (indicator) indicator.textContent = `Quote ${Math.round(palaRatio * 100)}% Pala / ${Math.round(leoRatio * 100)}% Leo`;
+
+    // 2. Update Pala Master Card
+    const elPalaHero = document.getElementById("pala-hero-profit");
+    if (elPalaHero) elPalaHero.textContent = formatEuro(palaNet);
+
+    const elPalaColl = document.getElementById("pala-stat-collected");
+    if (elPalaColl) elPalaColl.textContent = formatEuro(k.pala?.collected_profit || 0);
+
+    const elPalaPend = document.getElementById("pala-stat-pending");
+    if (elPalaPend) elPalaPend.textContent = formatEuro(k.pala?.pending_profit || 0);
+
+    const elPalaShirts = document.getElementById("pala-stat-shirts");
+    if (elPalaShirts) elPalaShirts.textContent = `${k.pala?.attributed_shirts || 0} capi`;
+
+    const elPalaAvg = document.getElementById("pala-stat-avg");
+    if (elPalaAvg) elPalaAvg.textContent = `${formatEuro(k.pala?.avg_profit_per_shirt || 0)} / capo`;
+
+    const palaCardBadge = document.getElementById("pala-card-badge");
+    if (palaCardBadge) palaCardBadge.textContent = `Quota ${Math.round(palaRatio * 100)}.0%`;
+
+    const palaPctCollected = palaNet > 0 ? Math.min(100, Math.round(((k.pala?.collected_profit || 0) / palaNet) * 100)) : 0;
+    const palaProgBar = document.getElementById("pala-progress-bar");
+    if (palaProgBar) palaProgBar.style.width = `${palaPctCollected}%`;
+
+    const palaProgColl = document.getElementById("pala-progress-collected-text");
+    if (palaProgColl) palaProgColl.textContent = `Incassato: ${formatEuro(k.pala?.collected_profit || 0)} (${palaPctCollected}%)`;
+
+    const palaProgPend = document.getElementById("pala-progress-pending-text");
+    if (palaProgPend) palaProgPend.textContent = `In attesa: ${formatEuro(k.pala?.pending_profit || 0)}`;
+
+    const palaExcelRef = document.getElementById("pala-excel-ref");
+    if (palaExcelRef) palaExcelRef.textContent = formatEuro(res?.excel_reference?.pala_profit ?? 362.0);
+
+    // 3. Update Leo Master Card
+    const elLeoHero = document.getElementById("leo-hero-profit");
+    if (elLeoHero) elLeoHero.textContent = formatEuro(leoNet);
+
+    const elLeoColl = document.getElementById("leo-stat-collected");
+    if (elLeoColl) elLeoColl.textContent = formatEuro(k.leo?.collected_profit || 0);
+
+    const elLeoPend = document.getElementById("leo-stat-pending");
+    if (elLeoPend) elLeoPend.textContent = formatEuro(k.leo?.pending_profit || 0);
+
+    const elLeoShirts = document.getElementById("leo-stat-shirts");
+    if (elLeoShirts) elLeoShirts.textContent = `${k.leo?.attributed_shirts || 0} capi`;
+
+    const elLeoAvg = document.getElementById("leo-stat-avg");
+    if (elLeoAvg) elLeoAvg.textContent = `${formatEuro(k.leo?.avg_profit_per_shirt || 0)} / capo`;
+
+    const leoCardBadge = document.getElementById("leo-card-badge");
+    if (leoCardBadge) leoCardBadge.textContent = `Quota ${Math.round(leoRatio * 100)}.0%`;
+
+    const leoPctCollected = leoNet > 0 ? Math.min(100, Math.round(((k.leo?.collected_profit || 0) / leoNet) * 100)) : 0;
+    const leoProgBar = document.getElementById("leo-progress-bar");
+    if (leoProgBar) leoProgBar.style.width = `${leoPctCollected}%`;
+
+    const leoProgColl = document.getElementById("leo-progress-collected-text");
+    if (leoProgColl) leoProgColl.textContent = `Incassato: ${formatEuro(k.leo?.collected_profit || 0)} (${leoPctCollected}%)`;
+
+    const leoProgPend = document.getElementById("leo-progress-pending-text");
+    if (leoProgPend) leoProgPend.textContent = `In attesa: ${formatEuro(k.leo?.pending_profit || 0)}`;
+
+    const leoExcelRef = document.getElementById("leo-excel-ref");
+    if (leoExcelRef) leoExcelRef.textContent = formatEuro(res?.excel_reference?.leo_profit ?? 362.0);
+
+    // 4. Render Charts
+    renderSociCharts(res?.charts || {}, palaNet, leoNet, palaRatio, leoRatio);
+
+    // 5. Render Orders Table
+    renderSociOrdersTable(res?.orders || []);
+
+    // 6. Recalculate Simulator with current ratio
+    recalcSociSimulator();
+
+  } catch (err) {
+    showToast("Errore caricamento Utile Soci: " + err.message, "error");
+  }
+}
+
+function renderSociCharts(chartsData, palaNet, leoNet, palaRatio, leoRatio) {
+  if (!window.Chart) return;
+
+  // Chart 1: Donut Distribution
+  const ctxDonut = document.getElementById("chart-soci-donut");
+  if (ctxDonut) {
+    if (charts.sociDonut) charts.sociDonut.destroy();
+
+    const pPala = Math.round(palaRatio * 100);
+    const pLeo = Math.round(leoRatio * 100);
+
+    charts.sociDonut = new Chart(ctxDonut, {
+      type: "doughnut",
+      data: {
+        labels: [`Utile Andrea (Pala) ${pPala}%`, `Utile Leonardo (Leo) ${pLeo}%`],
+        datasets: [{
+          data: [palaNet > 0 ? palaNet : 50, leoNet > 0 ? leoNet : 50],
+          backgroundColor: ["#1B365D", "#C4775B"],
+          hoverBackgroundColor: ["#2B4C7E", "#D9886C"],
+          borderWidth: 2,
+          borderColor: "#FFFFFF"
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "68%",
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              usePointStyle: true,
+              padding: 16,
+              font: { size: 12, weight: "600" }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (item) => ` ${item.label}: ${formatEuro(item.raw)}`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Chart 2: Timeline Evolution
+  const ctxTimeline = document.getElementById("chart-soci-timeline");
+  if (ctxTimeline) {
+    if (charts.sociTimeline) charts.sociTimeline.destroy();
+
+    const timeline = Array.isArray(chartsData?.timeline) ? chartsData.timeline : [];
+    const labels = timeline.map(t => formatDate(t.date));
+    const dataPala = timeline.map(t => t.cum_pala ?? t.pala_profit);
+    const dataLeo = timeline.map(t => t.cum_leo ?? t.leo_profit);
+
+    charts.sociTimeline = new Chart(ctxTimeline, {
+      type: "bar",
+      data: {
+        labels: labels.length > 0 ? labels : ["Oggi"],
+        datasets: [
+          {
+            label: "Quota Pala (Cumulativa)",
+            data: dataPala.length > 0 ? dataPala : [palaNet],
+            backgroundColor: "#1B365D",
+            borderRadius: 6
+          },
+          {
+            label: "Quota Leo (Cumulativa)",
+            data: dataLeo.length > 0 ? dataLeo : [leoNet],
+            backgroundColor: "#C4775B",
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { display: false } },
+          y: {
+            grid: { color: "rgba(0,0,0,0.05)" },
+            ticks: {
+              callback: (val) => `${val} €`
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              usePointStyle: true,
+              padding: 14
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: (item) => ` ${item.dataset.label}: ${formatEuro(item.raw)}`
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+function renderSociOrdersTable(orders) {
+  const tbody = document.getElementById("soci-orders-tbody");
+  if (!tbody) return;
+
+  const q = (state.sociOrdersSearch || "").toLowerCase().trim();
+  const stFilter = state.sociOrdersStatus || "all";
+
+  let filtered = (orders || []).filter(o => {
+    if (q) {
+      const matchCustomer = (o.customer_name || "").toLowerCase().includes(q);
+      const matchOrder = (o.order_number || "").toLowerCase().includes(q);
+      if (!matchCustomer && !matchOrder) return false;
+    }
+    if (stFilter === "paid" && !o.is_paid) return false;
+    if (stFilter === "pending" && o.is_paid) return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align: center; padding: 32px; color: var(--text-muted);">
+          Nessun ordine trovato per i filtri selezionati.
+        </td>
+      </tr>
+    `;
+    const countLabel = document.getElementById("soci-orders-count-label");
+    if (countLabel) countLabel.textContent = "0 ordini";
+    return;
+  }
+
+  let sumProfit = 0;
+  let sumPala = 0;
+  let sumLeo = 0;
+
+  const rowsHtml = filtered.map(o => {
+    sumProfit += o.profit || 0;
+    sumPala += o.pala_share || 0;
+    sumLeo += o.leo_share || 0;
+
+    const statusBadge = o.is_paid
+      ? `<span class="status-pill incassata">Incassato</span>`
+      : `<span class="status-pill confermata">In attesa</span>`;
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(o.order_number)}</strong></td>
+        <td>${formatDate(o.date)}</td>
+        <td>${escapeHtml(o.customer_name)}</td>
+        <td><strong>${o.shirts_qty}</strong> capo</td>
+        <td>${formatEuro(o.revenue)}</td>
+        <td>${formatEuro(o.costs)}</td>
+        <td><strong class="emerald-val">${formatEuro(o.profit)}</strong></td>
+        <td><strong style="color: #1B365D;">${formatEuro(o.pala_share)}</strong></td>
+        <td><strong style="color: #C4775B;">${formatEuro(o.leo_share)}</strong></td>
+        <td>${statusBadge}</td>
+      </tr>
+    `;
+  }).join("");
+
+  tbody.innerHTML = rowsHtml;
+
+  const countLabel = document.getElementById("soci-orders-count-label");
+  if (countLabel) countLabel.textContent = `${filtered.length} ordini visualizzati`;
+
+  const totalSumLabel = document.getElementById("soci-orders-total-sum");
+  if (totalSumLabel) {
+    totalSumLabel.innerHTML = `Totale Utile Registro: <strong>${formatEuro(sumProfit)}</strong> (Pala: <strong style="color: #1B365D;">${formatEuro(sumPala)}</strong> | Leo: <strong style="color: #C4775B;">${formatEuro(sumLeo)}</strong>)`;
+  }
+}
+
+function initSociSimulator() {
+  const simShirts = document.getElementById("sim-shirts-slider");
+  const simPrice = document.getElementById("sim-price-slider");
+  const simCost = document.getElementById("sim-cost-slider");
+  const simExtra = document.getElementById("sim-extra-slider");
+
+  if (!simShirts) return;
+
+  const update = () => recalcSociSimulator();
+
+  simShirts.addEventListener("input", update);
+  simPrice.addEventListener("input", update);
+  simCost.addEventListener("input", update);
+  simExtra.addEventListener("input", update);
+
+  document.querySelectorAll(".soci-preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".soci-preset-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      const preset = btn.dataset.preset;
+      if (preset === "base") {
+        simShirts.value = 65;
+        simPrice.value = 25;
+        simCost.value = 12;
+        simExtra.value = 0;
+      } else if (preset === "scale") {
+        simShirts.value = 100;
+        simPrice.value = 25;
+        simCost.value = 11;
+        simExtra.value = 0;
+      } else if (preset === "summer") {
+        simShirts.value = 250;
+        simPrice.value = 30;
+        simCost.value = 10.5;
+        simExtra.value = 50;
+      }
+      recalcSociSimulator();
+    });
+  });
+
+  recalcSociSimulator();
+}
+
+function recalcSociSimulator() {
+  const simShirts = document.getElementById("sim-shirts-slider");
+  const simPrice = document.getElementById("sim-price-slider");
+  const simCost = document.getElementById("sim-cost-slider");
+  const simExtra = document.getElementById("sim-extra-slider");
+
+  if (!simShirts || !simPrice || !simCost || !simExtra) return;
+
+  const shirts = parseInt(simShirts.value, 10) || 65;
+  const price = parseFloat(simPrice.value) || 25.0;
+  const cost = parseFloat(simCost.value) || 12.0;
+  const extra = parseFloat(simExtra.value) || 0.0;
+
+  document.getElementById("sim-shirts-display").textContent = `${shirts} capi`;
+  document.getElementById("sim-price-display").textContent = `${price.toFixed(2)} €`;
+  document.getElementById("sim-cost-display").textContent = `${cost.toFixed(2)} €`;
+  document.getElementById("sim-extra-display").textContent = `${extra.toFixed(2)} €`;
+
+  const totalRev = Math.round(shirts * price * 100) / 100;
+  const totalCost = Math.round(((shirts * cost) + extra) * 100) / 100;
+  const totalProfit = Math.round((totalRev - totalCost) * 100) / 100;
+
+  const palaRatio = (state.sociRatio || 50) / 100;
+  const leoRatio = 1 - palaRatio;
+
+  const palaProfit = Math.round(totalProfit * palaRatio * 100) / 100;
+  const leoProfit = Math.round(totalProfit * leoRatio * 100) / 100;
+
+  document.getElementById("sim-res-revenue").textContent = formatEuro(totalRev);
+  document.getElementById("sim-res-costs").textContent = formatEuro(totalCost);
+  document.getElementById("sim-res-profit").textContent = formatEuro(totalProfit);
+  document.getElementById("sim-res-pala").textContent = formatEuro(palaProfit);
+  document.getElementById("sim-res-leo").textContent = formatEuro(leoProfit);
+}
+
+// ---------------------------------------------------------------------------
 // 10. ORDERS VIEW (OPERATIVITÀ CLIENTI)
 // ---------------------------------------------------------------------------
 async function loadOrders() {
@@ -1992,6 +2446,11 @@ async function loadExcelStatus() {
     if (modProfit) modProfit.textContent = formatEuro(res.total_profit);
     if (modPala) modPala.textContent = formatEuro(res.pala_profit);
     if (modBizz) modBizz.textContent = formatEuro(res.bizz_profit);
+
+    const googleInput = document.getElementById("google-drive-url-input");
+    if (googleInput && res.google_drive_url && !googleInput.value) {
+      googleInput.value = res.google_drive_url;
+    }
 
   } catch (err) {
     console.error("Error loading Excel status:", err);
@@ -2323,6 +2782,33 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-open-excel-modal")?.addEventListener("click", openExcelSyncModal);
   document.getElementById("btn-trigger-excel-sync")?.addEventListener("click", triggerExcelSync);
 
+  // Google Drive Link Sync
+  const btnGoogle = document.getElementById("btn-sync-google-drive");
+  const inputGoogle = document.getElementById("google-drive-url-input");
+  if (btnGoogle && inputGoogle) {
+    btnGoogle.addEventListener("click", async () => {
+      const url = inputGoogle.value.trim();
+      if (!url) {
+        showToast("Incolla prima il link di Google Drive o Google Fogli.", "error");
+        return;
+      }
+      btnGoogle.disabled = true;
+      btnGoogle.textContent = "Sincronizzo...";
+      try {
+        const res = await apiRequest("/api/admin/excel/sync-google", "POST", { url });
+        showToast(`✓ Google Drive sincronizzato! ${res.orders_synced} ordini importati.`);
+        loadExcelStatus();
+        loadOverview();
+        if (state.currentView !== "overview") refreshCurrentView();
+      } catch (err) {
+        showToast(`Errore Google Drive: ${err.message}`, "error");
+      } finally {
+        btnGoogle.disabled = false;
+        btnGoogle.textContent = "Sincronizza";
+      }
+    });
+  }
+
   // Drag & drop / file input for Excel upload
   const dropZone = document.getElementById("excel-drop-zone");
   const fileInput = document.getElementById("excel-file-input");
@@ -2456,6 +2942,43 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-export-orders-csv")?.addEventListener("click", () => {
     window.location.href = "/api/admin/export-csv";
   });
+
+  // 10B. Partner Profit Sharing (Utile Soci) Listeners
+  document.getElementById("btn-goto-soci-view")?.addEventListener("click", () => {
+    switchView("soci");
+  });
+
+  document.querySelectorAll("#soci-ratio-selector .segment-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#soci-ratio-selector .segment-item").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const r = parseInt(btn.dataset.ratio, 10) || 50;
+      state.sociRatio = r;
+      loadSociProfit();
+      if (state.overviewData) renderSociOverviewWidget(state.overviewData);
+    });
+  });
+
+  document.getElementById("btn-export-soci-csv")?.addEventListener("click", () => {
+    window.location.href = "/api/admin/financial/export-csv?type=partners";
+  });
+
+  document.getElementById("btn-print-soci")?.addEventListener("click", () => {
+    window.print();
+  });
+
+  document.getElementById("soci-orders-search")?.addEventListener("input", (e) => {
+    state.sociOrdersSearch = e.target.value;
+    if (state.sociData?.orders) renderSociOrdersTable(state.sociData.orders);
+  });
+
+  document.getElementById("soci-orders-filter-status")?.addEventListener("change", (e) => {
+    state.sociOrdersStatus = e.target.value;
+    if (state.sociData?.orders) renderSociOrdersTable(state.sociData.orders);
+  });
+
+  // Initialize simulator
+  initSociSimulator();
 
   // 11. Config Forms
   document.getElementById("form-config-prices")?.addEventListener("submit", async (e) => {

@@ -85,6 +85,12 @@
               <span>Overview</span>
             </a>
 
+            <a class="sidebar-link" data-view="soci">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Utile Soci (Pala & Leo)</span>
+              <span class="sidebar-badge" id="side-badge-soci" style="background: #EBF3FA; color: #1B365D;">50/50</span>
+            </a>
+
             <a class="sidebar-link" data-view="attivo">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
               <span>Attivo (Entrate)</span>
@@ -340,6 +346,63 @@
             </div>
           </div>
 
+          <!-- Executive Partner Profit Preview Card -->
+          <div class="glass-card soci-overview-card" id="ov-soci-card">
+            <div class="soci-overview-header">
+              <div class="soci-overview-title-group">
+                <div class="soci-overview-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div>
+                  <h3 class="soci-overview-title">Ripartizione Utili Soci · Tavolara Wear</h3>
+                  <span class="soci-overview-sub">Divisione margine utile tra Andrea Palamidesi (Pala) & Leonardo Bizzotto (Leo)</span>
+                </div>
+              </div>
+              <div class="soci-overview-actions">
+                <span class="status-pill incassata" id="ov-soci-ratio-pill">Quote 50 / 50</span>
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-goto-soci-view" style="font-size: 12px; gap: 6px;">
+                  <span>Dettaglio Utili Soci</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="soci-overview-grid">
+              <!-- Utile Totale Netto -->
+              <div class="soci-overview-col soci-total-col">
+                <span class="soci-col-label">Utile Netto Complessivo</span>
+                <div class="soci-col-val" id="ov-soci-total-profit">€ 0,00</div>
+                <span class="soci-col-sub" id="ov-soci-total-sub">Incassi − Costi produzione</span>
+              </div>
+
+              <!-- Utile Pala -->
+              <div class="soci-overview-col soci-pala-col">
+                <div class="soci-col-partner-header">
+                  <div class="soci-avatar avatar-pala">AP</div>
+                  <div>
+                    <span class="soci-col-name">Andrea Palamidesi</span>
+                    <span class="soci-col-tag">Utile Pala · 50%</span>
+                  </div>
+                </div>
+                <div class="soci-col-val emerald-val" id="ov-soci-pala-profit">€ 0,00</div>
+                <span class="soci-col-sub" id="ov-soci-pala-sub">Disponibile: € 0,00</span>
+              </div>
+
+              <!-- Utile Leo -->
+              <div class="soci-overview-col soci-leo-col">
+                <div class="soci-col-partner-header">
+                  <div class="soci-avatar avatar-leo">LB</div>
+                  <div>
+                    <span class="soci-col-name">Leonardo Bizzotto</span>
+                    <span class="soci-col-tag">Utile Leo · 50%</span>
+                  </div>
+                </div>
+                <div class="soci-col-val emerald-val" id="ov-soci-leo-profit">€ 0,00</div>
+                <span class="soci-col-sub" id="ov-soci-leo-sub">Disponibile: € 0,00</span>
+              </div>
+            </div>
+          </div>
+
           <!-- 4 Modern Gradient Charts Grid -->
           <div class="charts-grid-2x2">
             <!-- Chart 1: Entrate e Uscite nel Tempo -->
@@ -394,6 +457,379 @@
               </div>
             </div>
           </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW: RIPARTIZIONE UTILI SOCI (PALA & LEO) -->
+        <!-- ======================================================== -->
+        <section id="view-soci" class="view-section">
+
+          <!-- Header Toolbar with Ratios & Actions -->
+          <div class="glass-card" style="padding: 18px 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <h2 style="font-family: var(--font-serif); font-size: 20px; font-weight: 600; margin: 0; color: var(--text-main);">Ripartizione Utili Soci</h2>
+                  <span class="status-pill incassata" id="soci-ratio-indicator">Quote 50% Pala / 50% Leo</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">
+                  Divisione trasparente del margine aziendale tra i soci fondatori Andrea Palamidesi (Pala) e Leonardo Bizzotto (Leo).
+                </p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div class="segmented-control" id="soci-ratio-selector" style="margin: 0;">
+                  <button type="button" class="segment-item active" data-ratio="50">50% / 50%</button>
+                  <button type="button" class="segment-item" data-ratio="60">60% Pala / 40% Leo</button>
+                  <button type="button" class="segment-item" data-ratio="40">40% Pala / 60% Leo</button>
+                </div>
+
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-soci-csv" title="Esporta prospetto ripartizione in formato CSV/Excel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Esporta CSV Soci</span>
+                </button>
+
+                <button type="button" class="apple-btn apple-btn-ghost apple-btn-sm" id="btn-print-soci" title="Stampa o salva prospetto in PDF">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  <span>Stampa Prospetto</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Hero KPI Cards (Totale Azienda, Utile Pala, Utile Leo) -->
+          <div class="kpi-hero-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <!-- Utile Complessivo -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Utile Netto Complessivo</span>
+                <div class="kpi-icon-pill amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="soci-kpi-total-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="soci-kpi-total-detail">Fatturato: € 0,00 · Costi: € 0,00</span>
+                <span class="kpi-badge positive" id="soci-kpi-total-margin">Margine 0%</span>
+              </div>
+            </div>
+
+            <!-- Utile Pala -->
+            <div class="glass-card kpi-card" style="border-top: 3px solid #1B365D;">
+              <div class="kpi-card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="soci-avatar avatar-pala" style="width: 26px; height: 26px; font-size: 11px;">AP</div>
+                  <span class="kpi-label">Utile Andrea (Pala)</span>
+                </div>
+                <span class="partner-badge-pill pala" id="soci-badge-pala-ratio">Quota 50%</span>
+              </div>
+              <div class="kpi-value emerald-val" id="soci-kpi-pala-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="soci-kpi-pala-sub">Incassato: € 0,00 · In attesa: € 0,00</span>
+                <span class="kpi-badge positive" id="soci-pala-status-badge">Disponibile</span>
+              </div>
+            </div>
+
+            <!-- Utile Leo -->
+            <div class="glass-card kpi-card" style="border-top: 3px solid #C4775B;">
+              <div class="kpi-card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="soci-avatar avatar-leo" style="width: 26px; height: 26px; font-size: 11px;">LB</div>
+                  <span class="kpi-label">Utile Leonardo (Leo)</span>
+                </div>
+                <span class="partner-badge-pill leo" id="soci-badge-leo-ratio">Quota 50%</span>
+              </div>
+              <div class="kpi-value emerald-val" id="soci-kpi-leo-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="soci-kpi-leo-sub">Incassato: € 0,00 · In attesa: € 0,00</span>
+                <span class="kpi-badge positive" id="soci-leo-status-badge">Disponibile</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- THE TWO MASTER PARTNER CARDS (Side-by-side Desktop, Stacked Mobile) -->
+          <div class="soci-partners-grid">
+            <!-- PALA MASTER CARD -->
+            <div class="partner-master-card partner-card-pala" id="card-partner-pala">
+              <div class="partner-card-header">
+                <div class="partner-identity">
+                  <div class="partner-avatar-lg avatar-pala">AP</div>
+                  <div class="partner-name-block">
+                    <h3>Andrea Palamidesi</h3>
+                    <span>Co-Founder & Socio Tavolara Wear</span>
+                  </div>
+                </div>
+                <span class="partner-badge-pill pala" id="pala-card-badge">Quota 50.0%</span>
+              </div>
+
+              <div class="partner-hero-box pala-theme">
+                <span class="partner-hero-label">Utile Netto Maturato Spettante</span>
+                <div class="partner-hero-amount" id="pala-hero-profit">€ 0,00</div>
+
+                <div class="partner-progress-container">
+                  <div class="partner-progress-track">
+                    <div class="partner-progress-bar pala-fill" id="pala-progress-bar" style="width: 0%;"></div>
+                  </div>
+                  <div class="partner-progress-labels">
+                    <span id="pala-progress-collected-text">Incassato: € 0,00 (0%)</span>
+                    <span id="pala-progress-pending-text">In attesa: € 0,00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="partner-stats-grid">
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Quota Già Incassata</span>
+                  <div class="partner-stat-val emerald-val" id="pala-stat-collected">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">In Attesa di Bonifico</span>
+                  <div class="partner-stat-val" style="color: var(--amber-warm);" id="pala-stat-pending">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Capi di Competenza</span>
+                  <div class="partner-stat-val" id="pala-stat-shirts">0 capi</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Margine Medio / Capo</span>
+                  <div class="partner-stat-val" id="pala-stat-avg">€ 0,00</div>
+                </div>
+              </div>
+
+              <div class="partner-footer-info">
+                <span>Riferimento Excel: <strong id="pala-excel-ref">€ 362,00</strong></span>
+                <span style="color: var(--olive); font-weight: 600;">✓ Ripartizione Attiva</span>
+              </div>
+            </div>
+
+            <!-- LEO MASTER CARD -->
+            <div class="partner-master-card partner-card-leo" id="card-partner-leo">
+              <div class="partner-card-header">
+                <div class="partner-identity">
+                  <div class="partner-avatar-lg avatar-leo">LB</div>
+                  <div class="partner-name-block">
+                    <h3>Leonardo Bizzotto</h3>
+                    <span>Co-Founder & Socio Tavolara Wear</span>
+                  </div>
+                </div>
+                <span class="partner-badge-pill leo" id="leo-card-badge">Quota 50.0%</span>
+              </div>
+
+              <div class="partner-hero-box leo-theme">
+                <span class="partner-hero-label">Utile Netto Maturato Spettante</span>
+                <div class="partner-hero-amount" id="leo-hero-profit">€ 0,00</div>
+
+                <div class="partner-progress-container">
+                  <div class="partner-progress-track">
+                    <div class="partner-progress-bar leo-fill" id="leo-progress-bar" style="width: 0%;"></div>
+                  </div>
+                  <div class="partner-progress-labels">
+                    <span id="leo-progress-collected-text">Incassato: € 0,00 (0%)</span>
+                    <span id="leo-progress-pending-text">In attesa: € 0,00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="partner-stats-grid">
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Quota Già Incassata</span>
+                  <div class="partner-stat-val emerald-val" id="leo-stat-collected">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">In Attesa di Bonifico</span>
+                  <div class="partner-stat-val" style="color: var(--amber-warm);" id="leo-stat-pending">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Capi di Competenza</span>
+                  <div class="partner-stat-val" id="leo-stat-shirts">0 capi</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Margine Medio / Capo</span>
+                  <div class="partner-stat-val" id="leo-stat-avg">€ 0,00</div>
+                </div>
+              </div>
+
+              <div class="partner-footer-info">
+                <span>Riferimento Excel: <strong id="leo-excel-ref">€ 362,00</strong></span>
+                <span style="color: var(--olive); font-weight: 600;">✓ Ripartizione Attiva</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2 CHARTS: Donut & Timeline -->
+          <div class="charts-grid-2x2">
+            <!-- Chart 1: Donut Distribution -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Suddivisione Quote Utile Soci</h3>
+                  <span class="chart-subtitle">Proporzione utile netto tra Andrea (Pala) e Leonardo (Leo)</span>
+                </div>
+              </div>
+              <div class="chart-container" style="height: 250px;">
+                <canvas id="chart-soci-donut"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 2: Timeline Evolution -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Evoluzione Utile Soci nel Tempo</h3>
+                  <span class="chart-subtitle">Crescita progressiva dell'utile spettante per data</span>
+                </div>
+              </div>
+              <div class="chart-container" style="height: 250px;">
+                <canvas id="chart-soci-timeline"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- INTERACTIVE SIMULATOR FOR PARTNER PROFITS -->
+          <div class="soci-simulator-card">
+            <div class="soci-simulator-header">
+              <div>
+                <h3 style="font-family: var(--font-serif); font-size: 19px; font-weight: 600; margin: 0; color: var(--text-main);">
+                  Simulatore di Redditività & Distribuzione Utile
+                </h3>
+                <span style="font-size: 12.5px; color: var(--text-secondary); display: block; margin-top: 2px;">
+                  Simula scenari di acquisto stock e vendite per calcolare in tempo reale il guadagno netto di Pala e Leo.
+                </span>
+              </div>
+
+              <!-- Preset buttons based on actual Tavolara Wear lot sizes -->
+              <div class="soci-simulator-presets">
+                <button type="button" class="soci-preset-btn active" data-preset="base">Lotto 65 Capi (Base)</button>
+                <button type="button" class="soci-preset-btn" data-preset="scale">Lotto 100 Capi (Scala)</button>
+                <button type="button" class="soci-preset-btn" data-preset="summer">Target 250 Capi (Summer)</button>
+              </div>
+            </div>
+
+            <div class="soci-simulator-body">
+              <!-- Controls Column -->
+              <div class="soci-simulator-controls">
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Quantità Capi Venduti</span>
+                    <strong id="sim-shirts-display">65 capi</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-shirts-slider" min="10" max="300" step="5" value="65">
+                </div>
+
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Prezzo Medio Unitario Vendita (€)</span>
+                    <strong id="sim-price-display">25.00 €</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-price-slider" min="15" max="40" step="1" value="25">
+                </div>
+
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Costo Acquisto Capo Fornitore (€)</span>
+                    <strong id="sim-cost-display">12.00 €</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-cost-slider" min="8" max="18" step="0.5" value="12">
+                </div>
+
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Spese Extra (Spedizione / Campioni €)</span>
+                    <strong id="sim-extra-display">0.00 €</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-extra-slider" min="0" max="300" step="10" value="0">
+                </div>
+              </div>
+
+              <!-- Live Dynamic Results Box -->
+              <div class="soci-simulator-result-box">
+                <div class="soci-sim-result-row">
+                  <span>Incasso Lordo Previsto</span>
+                  <strong id="sim-res-revenue">€ 1.625,00</strong>
+                </div>
+                <div class="soci-sim-result-row">
+                  <span>Costi Complessivi Produzione</span>
+                  <strong id="sim-res-costs">€ 780,00</strong>
+                </div>
+                <div class="soci-sim-result-row total-row">
+                  <span>Utile Netto Totale Stimato</span>
+                  <span class="emerald-val" style="font-size: 20px;" id="sim-res-profit">€ 845,00</span>
+                </div>
+
+                <!-- Partner splits -->
+                <div class="soci-sim-partner-row pala">
+                  <div>
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8;">Guadagno Netto Pala</div>
+                    <div style="font-size: 13.5px; font-weight: 700;">Andrea Palamidesi (50%)</div>
+                  </div>
+                  <div class="soci-sim-partner-val" id="sim-res-pala">€ 422,50</div>
+                </div>
+
+                <div class="soci-sim-partner-row leo">
+                  <div>
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8;">Guadagno Netto Leo</div>
+                    <div style="font-size: 13.5px; font-weight: 700;">Leonardo Bizzotto (50%)</div>
+                  </div>
+                  <div class="soci-sim-partner-val" id="sim-res-leo">€ 422,50</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DETAILED ORDERS ATTRIBUTION TABLE -->
+          <div class="glass-card" style="padding: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <h3 style="font-family: var(--font-serif); font-size: 18px; font-weight: 600; margin: 0; color: var(--text-main);">
+                  Registro Quote Ordini Clienti
+                </h3>
+                <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-top: 2px;">
+                  Dettaglio analitico per ciascun ordine con calcolo dell'utile di riga e quota spettante a ciascun socio
+                </span>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <input type="search" id="soci-orders-search" placeholder="Cerca cliente o N° ordine..." style="padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-main); font-size: 13px; min-width: 220px;">
+                <select id="soci-orders-filter-status" style="padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-main); font-size: 13px; background: white;">
+                  <option value="all">Tutti gli ordini</option>
+                  <option value="paid">Solo incassati</option>
+                  <option value="pending">Solo in attesa</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="data-table-container">
+              <table class="data-table" id="soci-orders-table">
+                <thead>
+                  <tr>
+                    <th>N. Ordine</th>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Capi</th>
+                    <th>Incasso</th>
+                    <th>Costi</th>
+                    <th>Utile Ordine</th>
+                    <th style="color: #1B365D;">Quota Pala (50%)</th>
+                    <th style="color: #C4775B;">Quota Leo (50%)</th>
+                    <th>Stato</th>
+                  </tr>
+                </thead>
+                <tbody id="soci-orders-tbody">
+                  <tr>
+                    <td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                      Caricamento registro quote soci in corso...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 12.5px; color: var(--text-secondary);">
+              <span id="soci-orders-count-label">58 ordini visualizzati</span>
+              <span id="soci-orders-total-sum">Totale Utile Registro: € 724,00 (Pala: € 362,00 | Leo: € 362,00)</span>
+            </div>
+          </div>
+
         </section>
 
         <!-- ======================================================== -->
@@ -1308,11 +1744,28 @@
           </div>
         </div>
 
+        <!-- Google Drive Direct Link Section -->
+        <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-main); border-radius: var(--radius-sm); padding: 14px 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brand-navy);"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <strong style="font-size: 13px; color: var(--text-main);">Collega Link Google Drive / Google Fogli</strong>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 9px;">
+            Incolla il link di condivisione del foglio (impostato su <em>"Chiunque abbia il link può visualizzare"</em>):
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="url" id="google-drive-url-input" class="apple-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit" style="flex: 1; font-size: 12px; padding: 7px 11px;">
+            <button type="button" class="apple-btn apple-btn-primary" id="btn-sync-google-drive" style="white-space: nowrap; padding: 0 14px; font-size: 12px;">
+              Sincronizza
+            </button>
+          </div>
+        </div>
+
         <!-- Drag & Drop Upload Zone -->
         <div style="border: 1.5px dashed var(--border-dark); border-radius: var(--radius-sm); padding: 22px; text-align: center; background: var(--bg-card-subtle); cursor: pointer;" id="excel-drop-zone">
           <input type="file" id="excel-file-input" accept=".xlsx" style="display: none;">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color: var(--terracotta); margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Trascina qui il file Excel o clicca per aggiornarlo</div>
+          <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Oppure trascina qui il file Excel o clicca per aggiornarlo</div>
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Accetta file <code>.xlsx</code> (es. <code>tavolr ordini novembredicembre2026.xlsx</code>)</div>
         </div>
 
@@ -1340,6 +1793,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
       <span>Overview</span>
     </button>
+    <button type="button" class="mobile-nav-btn" data-view="soci">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Utili Soci</span>
+    </button>
     <button type="button" class="mobile-nav-btn" data-view="attivo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
       <span>Entrate</span>
@@ -1347,10 +1804,6 @@
     <button type="button" class="mobile-nav-btn" data-view="passivo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
       <span>Uscite</span>
-    </button>
-    <button type="button" class="mobile-nav-btn" data-view="insights">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-      <span>Insights</span>
     </button>
     <button type="button" class="mobile-nav-btn" id="mobile-bottom-more">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
@@ -1382,6 +1835,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/supabaseClient.js?v=3.7"></script>
   <!-- App Logic -->
-  <script src="/js/admin.js?v=3.7"></script>
+  <script src="/js/admin.js?v=3.8"></script>
 </body>
 </html>

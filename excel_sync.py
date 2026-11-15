@@ -303,15 +303,30 @@ def sync_excel_to_supabase(parsed_orders, total_turnover, total_costs, total_shi
 DEFAULT_EXCEL_PATH = os.path.join(os.path.dirname(__file__), "data", "tavolara_ordini_live.xlsx")
 DOWNLOADS_PATH = os.path.expanduser("~/Downloads/tavolr ordini novembredicembre2026 2.xlsx")
 FALLBACK_DOWNLOADS_PATH = os.path.expanduser("~/Downloads/tavolr ordini novembredicembre2026.xlsx")
+ICLOUD_TAVOLARA_PATH = os.path.expanduser("~/Library/Mobile Documents/com~apple~CloudDocs/TAVOLARA/tavolr ordini novembredicembre2026.xlsx")
+
+def get_live_excel_path():
+    if os.environ.get("VERCEL"):
+        tmp_excel = "/tmp/tavolara_ordini_live.xlsx"
+        if not os.path.exists(tmp_excel) and os.path.exists(DEFAULT_EXCEL_PATH):
+            try:
+                import shutil
+                shutil.copy2(DEFAULT_EXCEL_PATH, tmp_excel)
+            except Exception:
+                pass
+        return tmp_excel
+    return DEFAULT_EXCEL_PATH
 
 def find_best_excel_file():
-    """Finds the most recent Excel file between data folder, Downloads, and Desktop."""
+    """Finds the most recent Excel file between data folder, Downloads, iCloud, and Desktop."""
     candidates = [
+        get_live_excel_path(),
         DEFAULT_EXCEL_PATH,
         DOWNLOADS_PATH,
-        FALLBACK_DOWNLOADS_PATH
+        FALLBACK_DOWNLOADS_PATH,
+        ICLOUD_TAVOLARA_PATH
     ]
-    existing = [p for p in candidates if os.path.exists(p)]
+    existing = [p for p in set(candidates) if os.path.exists(p)]
     if not existing:
         return None
     # Return the one with the latest modification time
@@ -673,9 +688,72 @@ def get_excel_sync_status():
         "total_revenue": float(cfg.get("excel_total_revenue", 0.0)),
         "total_costs": float(cfg.get("excel_total_costs", 0.0)),
         "total_profit": float(cfg.get("excel_total_profit", 0.0)),
+        "google_drive_url": cfg.get("excel_google_drive_url", ""),
         "pala_profit": float(cfg.get("excel_partner_pala", 0.0)),
         "bizz_profit": float(cfg.get("excel_partner_bizz", 0.0))
     }
+
+def sync_google_drive_to_db(url):
+    """
+    Downloads spreadsheet from Google Drive / Google Sheets URL and syncs into DB.
+    """
+    import re
+    match = re.search(r'(?:/d/|id=)([a-zA-Z0-9_-]+)', url)
+    if not match:
+        return {"success": False, "message": "Link Google Drive non valido. Incolla l'URL completo del foglio o file condiviso."}
+
+    file_id = match.group(1)
+    target_path = get_live_excel_path()
+
+    urls_to_try = [
+        f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx",
+        f"https://drive.google.com/uc?export=download&id={file_id}"
+    ]
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    last_err = None
+    downloaded = False
+    headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+
+    for u in urls_to_try:
+        try:
+            req = urllib.request.Request(u, headers=headers)
+            with urllib.request.urlopen(req, context=ctx, timeout=20) as resp:
+                content = resp.read()
+                # Check for XLSX signature (ZIP archive starts with PK\x03\x04)
+                if content.startswith(b"PK\x03\x04"):
+                    with open(target_path, "wb") as f:
+                        f.write(content)
+                    downloaded = True
+                    break
+                elif b"<html" in content.lower():
+                    last_err = "Assicurati che su Google Drive la condivisione sia impostata su 'Chiunque abbia il link' (visualizzatore)."
+        except Exception as e:
+            last_err = str(e)
+            continue
+
+    if not downloaded:
+        msg = "Impossibile scaricare il file da Google Drive."
+        if last_err:
+            msg += f" {last_err}"
+        return {"success": False, "message": msg}
+
+    # Save to config
+    conn = get_db()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    conn.execute("""
+        INSERT INTO config (key, value, updated_at) VALUES ('excel_google_drive_url', ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+    """, (url, now_iso))
+    conn.commit()
+    conn.close()
+
+    res = sync_excel_to_db(excel_path=target_path, force=True)
+    res["google_drive_synced"] = True
+    return res
 
 def check_auto_sync():
     """

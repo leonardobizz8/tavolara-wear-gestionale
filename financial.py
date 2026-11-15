@@ -288,6 +288,227 @@ def get_overview_data(period="all", start_date=None, end_date=None):
         }
     }
 
+def get_partners_profit(period="all", start_date=None, end_date=None, pala_ratio=0.5, leo_ratio=0.5):
+    """
+    Computes profit sharing and distribution between Tavolara Wear founders/partners:
+    - Andrea Palamidesi ('Pala')
+    - Leonardo Bizzotto ('Leo')
+    Supports custom date filtering, dynamic ratio split (default 50/50),
+    per-order breakdown, and cash collected vs pending balances.
+    """
+    import re
+    conn = get_db()
+    s_date, e_date = parse_date_range(period, start_date, end_date)
+
+    # Date filters for orders
+    date_where_ord = " WHERE o.status != 'Annullato'"
+    ord_params = []
+    if s_date:
+        date_where_ord += " AND o.created_at >= ?"
+        ord_params.append(s_date + "T00:00:00")
+    if e_date:
+        date_where_ord += " AND o.created_at <= ?"
+        ord_params.append(e_date + "T23:59:59")
+
+    # Fetch orders with items and incomes
+    query = f"""
+        SELECT 
+            o.id, o.order_number, o.created_at, o.customer_first_name, o.customer_last_name,
+            o.total_amount, o.shirt_price, o.shipping_cost, o.delivery_method, o.status as order_status,
+            COALESCE(SUM(oi.quantity), 1) as shirts_qty,
+            i.status as income_status, i.notes as income_notes, i.amount as income_amount
+        FROM orders o
+        LEFT JOIN order_items oi ON oi.order_id = o.id
+        LEFT JOIN incomes i ON i.order_id = o.id
+        {date_where_ord}
+        GROUP BY o.id
+        ORDER BY o.created_at DESC, o.id DESC
+    """
+    rows = conn.execute(query, ord_params).fetchall()
+
+    total_revenue = 0.0
+    total_costs = 0.0
+    total_profit = 0.0
+    collected_revenue = 0.0
+    collected_profit = 0.0
+    pending_revenue = 0.0
+    pending_profit = 0.0
+    total_shirts = 0
+    orders_list = []
+
+    # Daily aggregation for timeline
+    daily_profit = {}
+
+    for r in rows:
+        rev = float(r["total_amount"] or 0.0)
+        qty = int(r["shirts_qty"] or 1)
+        total_shirts += qty
+        total_revenue += rev
+
+        # Check payment status
+        is_paid = (
+            str(r["order_status"]).lower() in ["pagamento verificato", "completato", "consegnato", "incassata", "pagato"] or
+            str(r["income_status"]).lower() in ["incassata", "pagato"]
+        )
+
+        # Determine order utile:
+        notes_str = str(r["income_notes"] or "")
+        m = re.search(r"Utile riga:\s*([0-9.]+)", notes_str)
+        if m:
+            order_utile = float(m.group(1))
+            order_costs = round(rev - order_utile, 2)
+        else:
+            # Standard calculation: 12.00 € production cost per shirt
+            cost_shirts = qty * 12.0
+            ship_cost = float(r["shipping_cost"] or 0.0)
+            order_costs = round(cost_shirts + ship_cost, 2)
+            order_utile = round(rev - order_costs, 2)
+
+        total_costs += order_costs
+        total_profit += order_utile
+
+        if is_paid:
+            collected_revenue += rev
+            collected_profit += order_utile
+        else:
+            pending_revenue += rev
+            pending_profit += order_utile
+
+        pala_order_share = round(order_utile * pala_ratio, 2)
+        leo_order_share = round(order_utile * leo_ratio, 2)
+
+        dt_str = str(r["created_at"])[:10] if r["created_at"] else "2026-11-14"
+        if dt_str not in daily_profit:
+            daily_profit[dt_str] = {"revenue": 0.0, "profit": 0.0, "shirts": 0}
+        daily_profit[dt_str]["revenue"] += rev
+        daily_profit[dt_str]["profit"] += order_utile
+        daily_profit[dt_str]["shirts"] += qty
+
+        customer_name = f"{r['customer_first_name'] or ''} {r['customer_last_name'] or ''}".strip() or "Cliente"
+
+        orders_list.append({
+            "id": r["id"],
+            "order_number": r["order_number"] or f"ORD-{r['id']}",
+            "created_at": r["created_at"],
+            "date": dt_str,
+            "customer_name": customer_name,
+            "shirts_qty": qty,
+            "revenue": rev,
+            "costs": order_costs,
+            "profit": order_utile,
+            "pala_share": pala_order_share,
+            "leo_share": leo_order_share,
+            "status": "Incassato" if is_paid else "In attesa",
+            "is_paid": is_paid,
+            "delivery_method": r["delivery_method"] or "a mano"
+        })
+
+    # Read config for reference
+    cfg_rows = conn.execute("SELECT key, value FROM config WHERE key LIKE 'excel_%'").fetchall()
+    cfg_dict = {row["key"]: row["value"] for row in cfg_rows}
+    conn.close()
+
+    total_revenue = round(total_revenue, 2)
+    total_costs = round(total_costs, 2)
+    total_profit = round(total_profit, 2)
+    collected_revenue = round(collected_revenue, 2)
+    collected_profit = round(collected_profit, 2)
+    pending_revenue = round(pending_revenue, 2)
+    pending_profit = round(pending_profit, 2)
+
+    pala_net = round(total_profit * pala_ratio, 2)
+    leo_net = round(total_profit * leo_ratio, 2)
+    pala_collected = round(collected_profit * pala_ratio, 2)
+    leo_collected = round(collected_profit * leo_ratio, 2)
+    pala_pending = round(pending_profit * pala_ratio, 2)
+    leo_pending = round(pending_profit * leo_ratio, 2)
+
+    pala_shirts = int(round(total_shirts * pala_ratio))
+    leo_shirts = total_shirts - pala_shirts
+
+    # Build timeline
+    sorted_dates = sorted(daily_profit.keys())
+    timeline = []
+    cum_pala = 0.0
+    cum_leo = 0.0
+    for d in sorted_dates:
+        d_p = round(daily_profit[d]["profit"], 2)
+        d_pala = round(d_p * pala_ratio, 2)
+        d_leo = round(d_p * leo_ratio, 2)
+        cum_pala = round(cum_pala + d_pala, 2)
+        cum_leo = round(cum_leo + d_leo, 2)
+        timeline.append({
+            "date": d,
+            "revenue": round(daily_profit[d]["revenue"], 2),
+            "profit": d_p,
+            "shirts": daily_profit[d]["shirts"],
+            "pala_profit": d_pala,
+            "leo_profit": d_leo,
+            "cum_pala": cum_pala,
+            "cum_leo": cum_leo
+        })
+
+    return {
+        "period": period,
+        "date_range": {"start": s_date, "end": e_date},
+        "ratios": {
+            "pala": pala_ratio,
+            "leo": leo_ratio
+        },
+        "kpis": {
+            "total_revenue": total_revenue,
+            "total_costs": total_costs,
+            "total_profit": total_profit,
+            "collected_revenue": collected_revenue,
+            "collected_profit": collected_profit,
+            "pending_revenue": pending_revenue,
+            "pending_profit": pending_profit,
+            "total_orders": len(rows),
+            "total_shirts": total_shirts,
+            "margin_percentage": round((total_profit / total_revenue * 100), 1) if total_revenue > 0 else 0.0,
+            "pala": {
+                "name": "Andrea Palamidesi",
+                "nickname": "Pala",
+                "role": "Co-Founder & Partner",
+                "initials": "AP",
+                "percentage": round(pala_ratio * 100, 1),
+                "total_profit": pala_net,
+                "collected_profit": pala_collected,
+                "pending_profit": pala_pending,
+                "attributed_shirts": pala_shirts,
+                "avg_profit_per_shirt": round(pala_net / pala_shirts, 2) if pala_shirts > 0 else 0.0,
+                "status": f"Attivo · Quota {round(pala_ratio*100)}%"
+            },
+            "leo": {
+                "name": "Leonardo Bizzotto",
+                "nickname": "Leo",
+                "role": "Co-Founder & Partner",
+                "initials": "LB",
+                "percentage": round(leo_ratio * 100, 1),
+                "total_profit": leo_net,
+                "collected_profit": leo_collected,
+                "pending_profit": leo_pending,
+                "attributed_shirts": leo_shirts,
+                "avg_profit_per_shirt": round(leo_net / leo_shirts, 2) if leo_shirts > 0 else 0.0,
+                "status": f"Attivo · Quota {round(leo_ratio*100)}%"
+            }
+        },
+        "excel_reference": {
+            "pala_profit": float(cfg_dict.get("excel_partner_pala", pala_net)),
+            "leo_profit": float(cfg_dict.get("excel_partner_bizz", leo_net)),
+            "total_profit": float(cfg_dict.get("excel_total_profit", total_profit))
+        },
+        "orders": orders_list,
+        "charts": {
+            "distribution": {
+                "labels": [f"Utile Pala ({round(pala_ratio*100)}%)", f"Utile Leo ({round(leo_ratio*100)}%)"],
+                "values": [pala_net, leo_net],
+                "colors": ["#1B365D", "#C4775B"]
+            },
+            "timeline": timeline
+        }
+    }
+
 def get_incomes(search=None, status=None, sort_by="date", order="desc", period="all", start_date=None, end_date=None):
     conn = get_db()
     s_date, e_date = parse_date_range(period, start_date, end_date)
@@ -1053,6 +1274,41 @@ def export_financial_csv(export_type="all"):
             tot["total"],
             f"{tot['percentage']:.1f}%"
         ])
+
+    elif export_type == "partners":
+        writer.writerow(["=== TAVOLARA WEAR — REPORT RIPARTIZIONE UTILI SOCI ==="])
+        writer.writerow(["Data Generazione", datetime.now().strftime("%Y-%m-%d %H:%M:%S")])
+        writer.writerow(["Socio 1", "Andrea Palamidesi (Pala)", "Quota 50.0%"])
+        writer.writerow(["Socio 2", "Leonardo Bizzotto (Leo)", "Quota 50.0%"])
+        writer.writerow([])
+
+        partners_data = get_partners_profit(period="all")
+        kp = partners_data["kpis"]
+        writer.writerow(["RIASSUNTO FINANZIARIO SOCI", "VALORE"])
+        writer.writerow(["Incasso Complessivo Vendite", f"{kp['total_revenue']:.2f} €"])
+        writer.writerow(["Costi Complessivi Produzione/Spedizioni", f"{kp['total_costs']:.2f} €"])
+        writer.writerow(["UTILE NETTO TOTALE AZIENDA", f"{kp['total_profit']:.2f} €"])
+        writer.writerow(["UTILE SPETTANTE PALA (Andrea Palamidesi - 50%)", f"{kp['pala']['total_profit']:.2f} €"])
+        writer.writerow(["  - Di cui già Incassato / Liquidabile", f"{kp['pala']['collected_profit']:.2f} €"])
+        writer.writerow(["  - Di cui in Attesa di Pagamento", f"{kp['pala']['pending_profit']:.2f} €"])
+        writer.writerow(["UTILE SPETTANTE LEO (Leonardo Bizzotto - 50%)", f"{kp['leo']['total_profit']:.2f} €"])
+        writer.writerow(["  - Di cui già Incassato / Liquidabile", f"{kp['leo']['collected_profit']:.2f} €"])
+        writer.writerow(["  - Di cui in Attesa di Pagamento", f"{kp['leo']['pending_profit']:.2f} €"])
+        writer.writerow([])
+        writer.writerow(["N. ORDINE", "DATA", "CLIENTE", "CAPI", "INCASSO (€)", "COSTO STIMATO (€)", "UTILE ORDINE (€)", "QUOTA PALA (€)", "QUOTA LEO (€)", "STATO PAGAMENTO"])
+        for o in partners_data["orders"]:
+            writer.writerow([
+                o["order_number"],
+                o["date"],
+                o["customer_name"],
+                o["shirts_qty"],
+                f"{o['revenue']:.2f}",
+                f"{o['costs']:.2f}",
+                f"{o['profit']:.2f}",
+                f"{o['pala_share']:.2f}",
+                f"{o['leo_share']:.2f}",
+                o["status"]
+            ])
 
     else:
         # Full summary export

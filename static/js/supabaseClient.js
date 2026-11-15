@@ -1101,6 +1101,129 @@
 
       if (error) throw error;
       return { success: true };
+    },
+
+    async getPartnersProfit(period = "all", customStart = null, customEnd = null, palaRatio = 0.5, leoRatio = 0.5) {
+      await this.init();
+      if (!this.isConfigured()) return null;
+
+      const ov = await this.getOverviewData(period, customStart, customEnd);
+      if (!ov) return null;
+
+      const totalProfit = ov.kpis?.current_balance ?? ((ov.kpis?.total_incomes || 0) - (ov.kpis?.total_expenses || 0));
+      const totalRev = ov.kpis?.total_incomes || 0;
+      const totalCosts = ov.kpis?.total_expenses || 0;
+      const totalShirts = ov.kpis?.total_shirts_sold || 0;
+      const totalOrders = ov.kpis?.total_orders_count || 0;
+
+      const palaNet = Math.round(totalProfit * palaRatio * 100) / 100;
+      const leoNet = Math.round(totalProfit * leoRatio * 100) / 100;
+
+      let ordQuery = this.client
+        .from("orders")
+        .select("id, order_number, total_amount, status, created_at, customer_first_name, customer_last_name, delivery_method, order_items(quantity, unit_price)")
+        .neq("status", "Annullato")
+        .order("created_at", { ascending: false });
+
+      if (ov.date_range?.start) ordQuery = ordQuery.gte("created_at", ov.date_range.start + "T00:00:00");
+      if (ov.date_range?.end) ordQuery = ordQuery.lte("created_at", ov.date_range.end + "T23:59:59");
+
+      const { data: ordersData } = await ordQuery;
+      const orders = (ordersData || []).map(o => {
+        const qty = (o.order_items || []).reduce((s, it) => s + (it.quantity || 0), 0) || 1;
+        const rev = parseFloat(o.total_amount) || 0;
+        const costs = Math.round(qty * 12.0 * 100) / 100;
+        const profit = Math.round((rev - costs) * 100) / 100;
+        const isPaid = ["pagamento verificato", "completato", "consegnato", "incassata", "pagato"].includes((o.status || "").toLowerCase());
+        const customerName = `${o.customer_first_name || ""} ${o.customer_last_name || ""}`.trim() || "Cliente";
+
+        return {
+          id: o.id,
+          order_number: o.order_number || `ORD-${o.id}`,
+          date: (o.created_at || "").slice(0, 10),
+          created_at: o.created_at,
+          customer_name: customerName,
+          shirts_qty: qty,
+          revenue: rev,
+          costs: costs,
+          profit: profit,
+          pala_share: Math.round(profit * palaRatio * 100) / 100,
+          leo_share: Math.round(profit * leoRatio * 100) / 100,
+          status: isPaid ? "Incassato" : "In attesa",
+          is_paid: isPaid,
+          delivery_method: o.delivery_method || "a mano"
+        };
+      });
+
+      const palaShirts = Math.round(totalShirts * palaRatio);
+      const leoShirts = totalShirts - palaShirts;
+
+      return {
+        period,
+        date_range: ov.date_range,
+        ratios: { pala: palaRatio, leo: leoRatio },
+        kpis: {
+          total_revenue: totalRev,
+          total_costs: totalCosts,
+          total_profit: totalProfit,
+          collected_revenue: ov.kpis?.incomes_breakdown?.collected ?? 0,
+          collected_profit: Math.round(((ov.kpis?.incomes_breakdown?.collected || 0) * 0.5) * 100) / 100,
+          pending_revenue: ov.kpis?.incomes_breakdown?.pending ?? totalRev,
+          pending_profit: Math.round(((ov.kpis?.incomes_breakdown?.pending || totalProfit) * 0.5) * 100) / 100,
+          total_orders: totalOrders,
+          total_shirts: totalShirts,
+          margin_percentage: ov.kpis?.gross_profit_margin ?? 0,
+          pala: {
+            name: "Andrea Palamidesi",
+            nickname: "Pala",
+            role: "Co-Founder & Partner",
+            initials: "AP",
+            percentage: Math.round(palaRatio * 100),
+            total_profit: palaNet,
+            collected_profit: Math.round((ov.kpis?.incomes_breakdown?.collected || 0) * palaRatio * 100) / 100,
+            pending_profit: Math.round((ov.kpis?.incomes_breakdown?.pending || totalProfit) * palaRatio * 100) / 100,
+            attributed_shirts: palaShirts,
+            avg_profit_per_shirt: palaShirts > 0 ? Math.round((palaNet / palaShirts) * 100) / 100 : 0,
+            status: `Attivo · Quota ${Math.round(palaRatio * 100)}%`
+          },
+          leo: {
+            name: "Leonardo Bizzotto",
+            nickname: "Leo",
+            role: "Co-Founder & Partner",
+            initials: "LB",
+            percentage: Math.round(leoRatio * 100),
+            total_profit: leoNet,
+            collected_profit: Math.round((ov.kpis?.incomes_breakdown?.collected || 0) * leoRatio * 100) / 100,
+            pending_profit: Math.round((ov.kpis?.incomes_breakdown?.pending || totalProfit) * leoRatio * 100) / 100,
+            attributed_shirts: leoShirts,
+            avg_profit_per_shirt: leoShirts > 0 ? Math.round((leoNet / leoShirts) * 100) / 100 : 0,
+            status: `Attivo · Quota ${Math.round(leoRatio * 100)}%`
+          }
+        },
+        excel_reference: {
+          pala_profit: palaNet,
+          leo_profit: leoNet,
+          total_profit: totalProfit
+        },
+        orders,
+        charts: {
+          distribution: {
+            labels: [`Utile Pala (${Math.round(palaRatio * 100)}%)`, `Utile Leo (${Math.round(leoRatio * 100)}%)`],
+            values: [palaNet, leoNet],
+            colors: ["#1B365D", "#C4775B"]
+          },
+          timeline: (ov.charts?.cashflow_timeline || []).map(t => ({
+            date: t.date,
+            revenue: t.incomes,
+            profit: t.net,
+            shirts: 1,
+            pala_profit: Math.round(t.net * palaRatio * 100) / 100,
+            leo_profit: Math.round(t.net * leoRatio * 100) / 100,
+            cum_pala: Math.round(t.net * palaRatio * 100) / 100,
+            cum_leo: Math.round(t.net * leoRatio * 100) / 100
+          }))
+        }
+      };
     }
   };
 

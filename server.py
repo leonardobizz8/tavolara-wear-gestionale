@@ -469,6 +469,23 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                 send_json(self, data)
                 return
 
+            if path == "/api/admin/financial/partners":
+                period = query.get("period", ["all"])[0]
+                s_date = query.get("start_date", [None])[0]
+                e_date = query.get("end_date", [None])[0]
+                try:
+                    pala_ratio = float(query.get("pala_ratio", [0.5])[0])
+                except (ValueError, TypeError):
+                    pala_ratio = 0.5
+                try:
+                    leo_ratio = float(query.get("leo_ratio", [0.5])[0])
+                except (ValueError, TypeError):
+                    leo_ratio = 0.5
+                data = financial.get_partners_profit(period=period, start_date=s_date, end_date=e_date,
+                                                     pala_ratio=pala_ratio, leo_ratio=leo_ratio)
+                send_json(self, data)
+                return
+
             if path == "/api/admin/incomes":
                 search = query.get("search", [None])[0]
                 status_filter = query.get("status", ["all"])[0]
@@ -1129,6 +1146,28 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
             send_json(self, res)
             return
 
+        if path == "/api/admin/excel/sync-google":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            data = read_json_body(self) or {}
+            url = (data.get("url") or "").strip()
+            if not url:
+                conn = get_db()
+                row = conn.execute("SELECT value FROM config WHERE key = 'excel_google_drive_url'").fetchone()
+                conn.close()
+                if row and row["value"]:
+                    url = row["value"]
+                else:
+                    send_error_json(self, "Nessun link Google Drive fornito.", status=400)
+                    return
+            res = excel_sync.sync_google_drive_to_db(url)
+            if not res.get("success"):
+                send_error_json(self, res.get("message", "Errore sincronizzazione Google Drive."), status=400)
+                return
+            send_json(self, res)
+            return
+
         if path == "/api/admin/excel/upload":
             if not is_admin_authenticated(self):
                 send_error_json(self, "Non autorizzato.", status=401)
@@ -1139,7 +1178,7 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                 return
             raw_data = self.rfile.read(content_len)
             
-            target_path = os.path.join(os.path.dirname(__file__), "data", "tavolara_ordini_live.xlsx")
+            target_path = excel_sync.get_live_excel_path()
             with open(target_path, "wb") as f:
                 f.write(raw_data)
             
@@ -1287,6 +1326,7 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
+    allow_reuse_address = True
 
 def start_excel_auto_watcher():
     """Background watcher that automatically detects edits to Excel orders file and syncs to Supabase."""
