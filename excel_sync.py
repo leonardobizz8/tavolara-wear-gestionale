@@ -393,7 +393,13 @@ def sync_excel_to_db(excel_path=None, force=False):
     # Open workbook in read_only mode (instant read)
     try:
         wb = openpyxl.load_workbook(excel_path, read_only=True, data_only=True)
-        sheet = wb["Ordini"]
+        sheet = None
+        for sname in wb.sheetnames:
+            if "ordin" in sname.lower():
+                sheet = wb[sname]
+                break
+        if sheet is None:
+            sheet = wb[wb.sheetnames[0]]
     except Exception as e:
         conn.close()
         return {
@@ -401,11 +407,27 @@ def sync_excel_to_db(excel_path=None, force=False):
             "message": f"Impossibile leggere il file Excel: {str(e)}"
         }
 
-    # Read data rows from row 10 up to 150 (stops after empty rows)
+    # Auto-detect start row
+    min_row_num = 10
+    try:
+        sample_rows = list(sheet.iter_rows(min_row=1, max_row=20, values_only=True))
+        for r_idx, r in enumerate(sample_rows):
+            r_str = " ".join([str(c).lower() for c in r if c is not None])
+            if "cliente" in r_str or "n. ordine" in r_str or "taglia" in r_str:
+                for next_idx in range(r_idx + 1, len(sample_rows)):
+                    next_r = sample_rows[next_idx]
+                    if len(next_r) > 2 and next_r[2] is not None and str(next_r[2]).strip() != "":
+                        min_row_num = next_idx + 1
+                        break
+                break
+    except Exception:
+        min_row_num = 10
+
+    # Read data rows from detected min_row_num up to 300
     parsed_orders = []
     consecutive_empty = 0
 
-    for idx, r in enumerate(sheet.iter_rows(min_row=10, max_row=200, values_only=True)):
+    for idx, r in enumerate(sheet.iter_rows(min_row=min_row_num, max_row=300, values_only=True)):
         cliente = r[2] if len(r) > 2 else None
         if cliente is not None and str(cliente).strip() != "":
             consecutive_empty = 0
@@ -677,6 +699,25 @@ def get_excel_sync_status():
         curr_mtime = str(os.path.getmtime(active_file))
         is_up_to_date = (cfg["excel_last_mtime"] == curr_mtime)
 
+    google_url = cfg.get("excel_google_drive_url", "")
+    if not google_url:
+        try:
+            sb_cfg = read_supabase_env()
+            if sb_cfg["is_configured"]:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                sb_req = urllib.request.Request(
+                    f"{sb_cfg['supabase_url']}/rest/v1/config?key=eq.excel_google_drive_url&select=value",
+                    headers={"apikey": sb_cfg["supabase_anon_key"], "Authorization": f"Bearer {sb_cfg['supabase_anon_key']}"}
+                )
+                with urllib.request.urlopen(sb_req, context=ctx, timeout=3) as r:
+                    sb_data = json.loads(r.read().decode())
+                    if sb_data and len(sb_data) > 0:
+                        google_url = sb_data[0].get("value", "")
+        except Exception:
+            pass
+
     return {
         "is_connected": bool(cfg.get("excel_linked") == "1"),
         "is_up_to_date": is_up_to_date,
@@ -688,7 +729,7 @@ def get_excel_sync_status():
         "total_revenue": float(cfg.get("excel_total_revenue", 0.0)),
         "total_costs": float(cfg.get("excel_total_costs", 0.0)),
         "total_profit": float(cfg.get("excel_total_profit", 0.0)),
-        "google_drive_url": cfg.get("excel_google_drive_url", ""),
+        "google_drive_url": google_url,
         "pala_profit": float(cfg.get("excel_partner_pala", 0.0)),
         "bizz_profit": float(cfg.get("excel_partner_bizz", 0.0))
     }
@@ -750,6 +791,23 @@ def sync_google_drive_to_db(url):
     """, (url, now_iso))
     conn.commit()
     conn.close()
+
+    # Also persist to Supabase Cloud
+    try:
+        cfg = read_supabase_env()
+        if cfg["is_configured"]:
+            sb_url = f"{cfg['supabase_url']}/rest/v1/config?on_conflict=key"
+            sb_headers = {
+                "apikey": cfg["supabase_anon_key"],
+                "Authorization": f"Bearer {cfg['supabase_anon_key']}",
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates"
+            }
+            sb_payload = json.dumps([{"key": "excel_google_drive_url", "value": url, "updated_at": now_iso}]).encode("utf-8")
+            sb_req = urllib.request.Request(sb_url, data=sb_payload, headers=sb_headers, method="POST")
+            urllib.request.urlopen(sb_req, context=ctx)
+    except Exception as e:
+        print("[Excel Sync] Errore salvataggio google_drive_url su Supabase:", e)
 
     res = sync_excel_to_db(excel_path=target_path, force=True)
     res["google_drive_synced"] = True
