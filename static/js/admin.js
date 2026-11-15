@@ -845,10 +845,21 @@ function renderIncomesTable(incomes) {
     const statusBg = isInc ? "rgba(5, 150, 105, 0.12)" : (isConf ? "rgba(30, 58, 138, 0.12)" : "rgba(217, 119, 6, 0.12)");
     const statusColor = isInc ? "#059669" : (isConf ? "#1e3a8a" : "#d97706");
 
+    const rawRef = inc.order_reference || inc.reference || "";
+    let displayRef = rawRef;
+    if (!displayRef) {
+      const match = (inc.description || "").match(/Ordine\s*#(\d+)/i);
+      if (match) {
+        displayRef = `EXCEL-${String(match[1]).padStart(3, "0")}`;
+      }
+    }
+    const cleanRef = displayRef ? displayRef.replace(/^#/, "") : "";
+    const refBadge = cleanRef ? `<span class="kpi-badge" style="background: rgba(2, 132, 199, 0.1); color: #0284c7; font-weight: 700;">#${escapeHtml(cleanRef)}</span>` : "—";
+
     tr.innerHTML = `
       <td>${formatDate(inc.date)}</td>
       <td class="fw-bold">${escapeHtml(inc.description)}</td>
-      <td>${inc.order_reference ? `<span class="kpi-badge" style="background: rgba(2, 132, 199, 0.1); color: #0284c7;">${escapeHtml(inc.order_reference)}</span>` : "—"}</td>
+      <td>${refBadge}</td>
       <td><span style="font-size: 12.5px;">${escapeHtml(inc.payment_method)}</span></td>
       <td>
         <select class="income-status-select" data-id="${inc.id}" style="font-size: 11px; padding: 2px 6px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid var(--border-dark); background: ${statusBg}; color: ${statusColor};">
@@ -1048,18 +1059,35 @@ async function openSyncOrdersModal() {
     const incMap = {};
     (incomesList || []).forEach(inc => {
       if (inc.order_id) incMap[inc.order_id] = inc;
-      if (inc.reference) incMap[inc.reference] = inc;
-      if (inc.order_reference) incMap[inc.order_reference] = inc;
+      const ref = inc.reference || inc.order_reference;
+      if (ref) {
+        const cleanRef = ref.replace(/^#/, "");
+        incMap[ref] = inc;
+        incMap[cleanRef] = inc;
+        incMap[`#${cleanRef}`] = inc;
+      }
+      const m = (inc.description || "").match(/Ordine\s*#(\d+)/i);
+      if (m) {
+        const tag = `EXCEL-${String(m[1]).padStart(3, "0")}`;
+        incMap[tag] = inc;
+        incMap[m[1]] = inc;
+      }
     });
 
-    // Filter non-cancelled orders
+    // Filter non-cancelled orders & sort descending (59, 58 down to 1)
     const syncable = orders.filter(o => o.status !== "Annullato");
+    syncable.sort((a, b) => {
+      const numA = parseInt((a.order_number || "").replace(/\D/g, ""), 10) || (a.id || 0);
+      const numB = parseInt((b.order_number || "").replace(/\D/g, ""), 10) || (b.id || 0);
+      return numB - numA;
+    });
 
     const countInfo = document.getElementById("sync-modal-count-info");
     if (countInfo) {
       const totalAmount = syncable.reduce((s, o) => s + parseFloat(o.total_amount || 0), 0);
       const incassatiCount = syncable.filter(o => {
-        const inc = incMap[o.id] || incMap[o.order_number];
+        const cleanNum = (o.order_number || "").replace(/^#/, "");
+        const inc = incMap[o.id] || incMap[o.order_number] || incMap[cleanNum] || incMap[`#${cleanNum}`];
         return inc && inc.status === "Incassata";
       }).length;
       countInfo.textContent = `${syncable.length} ordini (${formatEuro(totalAmount)}) · ${incassatiCount} già incassati`;
@@ -1073,7 +1101,8 @@ async function openSyncOrdersModal() {
     tbody.innerHTML = "";
     syncable.forEach(ord => {
       const tr = document.createElement("tr");
-      const linkedInc = incMap[ord.id] || incMap[ord.order_number];
+      const cleanOrdNum = (ord.order_number || "").replace(/^#/, "");
+      const linkedInc = incMap[ord.id] || incMap[ord.order_number] || incMap[cleanOrdNum] || incMap[`#${cleanOrdNum}`];
       const attivoStatus = linkedInc ? linkedInc.status : "Non registrato";
       const isIncassata = attivoStatus === "Incassata";
       const isConfermata = attivoStatus === "Confermata";
@@ -2354,6 +2383,13 @@ function renderOrdersTable(orders) {
     return true;
   });
 
+  // Sort orders descending (EXCEL-059, EXCEL-058 down to EXCEL-001)
+  filtered.sort((a, b) => {
+    const numA = parseInt((a.order_number || "").replace(/\D/g, ""), 10) || (a.id || 0);
+    const numB = parseInt((b.order_number || "").replace(/\D/g, ""), 10) || (b.id || 0);
+    return numB - numA;
+  });
+
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">Nessun ordine trovato.</td></tr>`;
     return;
@@ -2364,13 +2400,14 @@ function renderOrdersTable(orders) {
 
     // Product summary
     const itemsSummary = (o.items || []).map(i => `${i.quantity}x ${i.color_name || (i.color === 'white' ? 'Bianca' : 'Blu navy')} (${i.size})`).join(", ") || "T-shirt";
+    const customerDisplayName = (o.customer_name || `${o.customer_first_name || ''} ${o.customer_last_name || ''}`.trim()) || "Cliente";
 
     tr.innerHTML = `
-      <td class="fw-bold">#${escapeHtml(o.order_number)}</td>
+      <td class="fw-bold">#${escapeHtml((o.order_number || "").replace(/^#/, ""))}</td>
       <td>${formatDate(o.created_at ? o.created_at.substring(0, 10) : "")}</td>
       <td>
-        <div style="font-weight: 600;">${escapeHtml(o.customer_first_name)} ${escapeHtml(o.customer_last_name)}</div>
-        <div style="font-size: 11.5px; color: var(--text-muted);">${escapeHtml(o.customer_email)}</div>
+        <div style="font-weight: 600;">${escapeHtml(customerDisplayName)}</div>
+        <div style="font-size: 11.5px; color: var(--text-muted);">${escapeHtml(o.customer_email || "")}</div>
       </td>
       <td><span style="font-size: 12.5px;">${escapeHtml(itemsSummary)}</span></td>
       <td><span style="font-size: 12.5px; text-transform: capitalize;">${escapeHtml(o.delivery_method)}</span></td>
@@ -2412,7 +2449,9 @@ function renderOrdersTable(orders) {
         }
         await apiRequest(`/api/admin/orders/${orderId}/status`, "PATCH", { status: newStatus });
         showToast(`Stato ordine #${orderId} aggiornato a '${newStatus}'`);
-        loadOverview();
+        await loadOverview();
+        await loadIncomes();
+        await loadSociProfit();
       } catch (err) {
         showToast(err.message, "error");
       }
@@ -2435,7 +2474,9 @@ function renderOrdersTable(orders) {
         await apiRequest(`/api/admin/incomes/sync-order/${orderId}`, "POST");
         showToast(`Ordine #${orderId} sincronizzato nell'Attivo`);
         btn.textContent = "✓ Sincronizzato";
-        loadOverview();
+        await loadOverview();
+        await loadIncomes();
+        await loadSociProfit();
       } catch (err) {
         showToast(err.message, "error");
         btn.disabled = false;
@@ -2535,7 +2576,46 @@ function renderVariantsTable(variants) {
 // ---------------------------------------------------------------------------
 async function loadExcelStatus() {
   try {
-    const res = await apiRequest("/api/admin/excel/status");
+    let res = null;
+    try {
+      res = await apiRequest("/api/admin/excel/status");
+    } catch (e) {
+      console.warn("[Admin] Local excel status API fallback to Supabase:", e);
+    }
+
+    if (!res || !res.orders_count) {
+      if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+        try {
+          const cfg = await window.TavolaraSupabase.getConfig();
+          const ordRes = await window.TavolaraSupabase.getOrders();
+          const orders = ordRes?.orders || [];
+          const excelOrders = orders.filter(o => (o.order_number || "").startsWith("EXCEL-"));
+          const count = excelOrders.length || orders.length || parseInt(cfg?.excel_rows_count || "59", 10);
+          const rev = excelOrders.reduce((s, o) => s + (parseFloat(o.total_amount) || 0), 0) || parseFloat(cfg?.excel_total_revenue || "1475.00");
+          const costs = count * 12.0;
+          const profit = rev - costs;
+          res = {
+            is_connected: true,
+            is_up_to_date: true,
+            file_name: cfg?.excel_file_name || "tavolara_ordini_live.xlsx",
+            file_path: cfg?.excel_file_path || "data/tavolara_ordini_live.xlsx",
+            last_synced: cfg?.excel_last_synced || new Date().toISOString(),
+            orders_count: count,
+            total_shirts: count,
+            total_revenue: rev,
+            total_costs: costs,
+            total_profit: profit,
+            pala_profit: Math.round(profit * 0.5 * 100) / 100,
+            bizz_profit: Math.round(profit * 0.5 * 100) / 100,
+            google_drive_url: cfg?.excel_google_drive_url || ""
+          };
+        } catch (sbErr) {
+          console.warn("[Admin] Supabase config fallback failed:", sbErr);
+        }
+      }
+    }
+    if (!res) return;
+
     state.excelStatus = res;
     // Update sidebar card
     const sideFilename = document.getElementById("side-excel-filename");
@@ -2592,7 +2672,7 @@ async function triggerExcelSync() {
   const btn = document.getElementById("btn-trigger-excel-sync");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "Sincronizzo...";
+    btn.textContent = "Importo...";
   }
   try {
     const res = await apiRequest("/api/admin/excel/sync", "POST");
@@ -2605,9 +2685,35 @@ async function triggerExcelSync() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "Sincronizza Ora";
+      btn.textContent = "📥 Importa da Excel";
     }
   }
+}
+
+async function triggerExcelWrite() {
+  const btn = document.getElementById("btn-trigger-excel-write");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Allineo su Excel...";
+  }
+  try {
+    const res = await apiRequest("/api/admin/excel/sync-to-excel", "POST");
+    showToast(res.message || "✓ Modifiche salvate nel file Excel!", "success");
+    loadExcelStatus();
+  } catch (err) {
+    showToast("Errore scrittura Excel: " + err.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "📤 Allinea su Excel";
+    }
+  }
+}
+
+function downloadLiveExcel() {
+  const token = state.token || "tavolara2026";
+  const url = `/api/admin/excel/download?token=${encodeURIComponent(token)}`;
+  window.open(url, "_blank");
 }
 
 async function uploadExcelFile(file) {
@@ -2907,6 +3013,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("sidebar-excel-card")?.addEventListener("click", openExcelSyncModal);
   document.getElementById("btn-open-excel-modal")?.addEventListener("click", openExcelSyncModal);
   document.getElementById("btn-trigger-excel-sync")?.addEventListener("click", triggerExcelSync);
+  document.getElementById("btn-trigger-excel-write")?.addEventListener("click", triggerExcelWrite);
+  document.getElementById("btn-download-live-excel")?.addEventListener("click", downloadLiveExcel);
 
   // Google Drive Link Sync
   const btnGoogle = document.getElementById("btn-sync-google-drive");

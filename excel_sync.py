@@ -10,8 +10,22 @@ import sqlite3
 import json
 import ssl
 import urllib.request
+import re
+import shutil
 from datetime import datetime, timezone
 from database import get_db
+
+def safe_int(v, default=1):
+    try:
+        return int(float(str(v).strip()))
+    except Exception:
+        return default
+
+def safe_float(v, default=0.0):
+    try:
+        return float(str(v).strip().replace(",", "."))
+    except Exception:
+        return default
 
 def read_supabase_env():
     """Safely reads Supabase credentials from local .env."""
@@ -421,38 +435,28 @@ def sync_excel_to_db(excel_path=None, force=False):
             "message": f"Impossibile leggere il file Excel: {str(e)}"
         }
 
-    # Auto-detect start row
+    # Data starts at row 10 in standard Tavolara sheet
     min_row_num = 10
-    try:
-        sample_rows = list(sheet.iter_rows(min_row=1, max_row=20, values_only=True))
-        for r_idx, r in enumerate(sample_rows):
-            r_str = " ".join([str(c).lower() for c in r if c is not None])
-            if "cliente" in r_str or "n. ordine" in r_str or "taglia" in r_str:
-                for next_idx in range(r_idx + 1, len(sample_rows)):
-                    next_r = sample_rows[next_idx]
-                    if len(next_r) > 2 and next_r[2] is not None and str(next_r[2]).strip() != "":
-                        min_row_num = next_idx + 1
-                        break
-                break
-    except Exception:
-        min_row_num = 10
 
-    # Read data rows from detected min_row_num up to 300
+    # Read data rows from min_row_num up to 507
     parsed_orders = []
     consecutive_empty = 0
 
-    for idx, r in enumerate(sheet.iter_rows(min_row=min_row_num, max_row=300, values_only=True)):
+    for idx, r in enumerate(sheet.iter_rows(min_row=min_row_num, max_row=507, values_only=True)):
         cliente = r[2] if len(r) > 2 else None
         if cliente is not None and str(cliente).strip() != "":
+            cliente_raw = str(cliente).strip()
+            if cliente_raw.lower() in ["cliente", "cliente:", "totale", "totali"]:
+                continue
             consecutive_empty = 0
-            num = r[0] if len(r) > 0 and r[0] is not None else (len(parsed_orders) + 1)
+            num = safe_int(r[0], len(parsed_orders) + 1)
             date_val = r[1] if len(r) > 1 and r[1] is not None else "2026-11-14"
             if isinstance(date_val, datetime):
                 date_str = date_val.strftime("%Y-%m-%d")
             else:
                 date_str = str(date_val)[:10] if date_val else "2026-11-14"
 
-            cliente_clean = " ".join([w.capitalize() for w in str(cliente).strip().split()])
+            cliente_clean = " ".join([w.capitalize() for w in cliente_raw.split()])
             telefono = str(r[3]).strip() if len(r) > 3 and r[3] is not None else ""
             colore_raw = r[4] if len(r) > 4 else None
             taglia_raw = r[5] if len(r) > 5 else None
@@ -460,20 +464,20 @@ def sync_excel_to_db(excel_path=None, force=False):
             color_code, color_label = normalize_color(colore_raw)
             size_code = normalize_size(taglia_raw)
 
-            qty = int(r[6]) if len(r) > 6 and r[6] is not None else 1
+            qty = safe_int(r[6], 1)
             if qty <= 0: qty = 1
 
             # Price and income
-            incasso_prev = float(r[9]) if len(r) > 9 and r[9] is not None else 25.0
-            prezzo_unit = float(r[7]) if len(r) > 7 and r[7] is not None else (incasso_prev / qty)
-            sped_addeb = float(r[8]) if len(r) > 8 and r[8] is not None else 0.0
+            incasso_prev = safe_float(r[9], 25.0)
+            prezzo_unit = safe_float(r[7], (incasso_prev / qty) if qty > 0 else 25.0)
+            sped_addeb = safe_float(r[8], 0.0)
 
             # Costs
-            costo_unit = float(r[10]) if len(r) > 10 and r[10] is not None else 12.0
-            costo_magl = float(r[11]) if len(r) > 11 and r[11] is not None else (costo_unit * qty)
-            costo_sped = float(r[12]) if len(r) > 12 and r[12] is not None else 0.0
-            altre_spese = float(r[13]) if len(r) > 13 and r[13] is not None else 0.0
-            utile = float(r[14]) if len(r) > 14 and r[14] is not None else (incasso_prev - costo_magl - costo_sped - altre_spese)
+            costo_unit = safe_float(r[10], 12.0)
+            costo_magl = safe_float(r[11], costo_unit * qty)
+            costo_sped = safe_float(r[12], 0.0)
+            altre_spese = safe_float(r[13], 0.0)
+            utile = safe_float(r[14], incasso_prev - costo_magl - costo_sped - altre_spese)
 
             pagato_raw = r[15] if len(r) > 15 and r[15] is not None else None
             is_pagato = str(pagato_raw).strip().lower() in ["si", "sì", "yes", "true", "1", "ok", "pagato"]
@@ -702,6 +706,386 @@ def sync_excel_to_db(excel_path=None, force=False):
         "pala_profit": half_profit,
         "bizz_profit": half_profit,
         "last_synced": now_iso
+    }
+
+def update_excel_order_status(order_id_or_num, new_status, is_paid=None, tracking=None, shipping_status=None, notes=None, excel_path=None):
+    """
+    Reverse Sync (Dashboard -> Excel):
+    Updates a specific order in the live Excel file when modified in the dashboard.
+    Sets 'Pagamento ricevuto' (Col P / 16) to 'Sì' or '', updates tracking, notes, etc.
+    """
+    if not excel_path:
+        excel_path = find_best_excel_file()
+    if not excel_path or not os.path.exists(excel_path):
+        return {"success": False, "message": "Nessun file Excel trovato da aggiornare."}
+
+    conn = get_db()
+    order = None
+    if isinstance(order_id_or_num, int) or str(order_id_or_num).isdigit():
+        order = conn.execute("SELECT * FROM orders WHERE id = ?", (int(order_id_or_num),)).fetchone()
+    if not order:
+        order = conn.execute("SELECT * FROM orders WHERE order_number = ? OR order_token = ?", (str(order_id_or_num), str(order_id_or_num))).fetchone()
+    conn.close()
+
+    if not order:
+        return {"success": False, "message": f"Ordine '{order_id_or_num}' non trovato nel database."}
+
+    # Determine is_paid
+    if is_paid is None:
+        paid_statuses = ["Pagamento verificato", "Ordine pagato", "Spedito / Consegnato", "In preparazione"]
+        is_paid = new_status in paid_statuses
+
+    try:
+        wb = openpyxl.load_workbook(excel_path, data_only=False)
+        sheet = None
+        for sname in wb.sheetnames:
+            if "ordin" in sname.lower():
+                sheet = wb[sname]
+                break
+        if sheet is None:
+            sheet = wb[wb.sheetnames[0]]
+
+        order_num_str = str(order["order_number"])
+        clean_num = None
+        m = re.search(r'\d+', order_num_str)
+        if m:
+            clean_num = int(m.group(0))
+
+        target_row = None
+        for r in range(10, 508):
+            row_num_val = sheet.cell(r, 1).value
+            client_val = sheet.cell(r, 3).value
+            if clean_num is not None:
+                if (r - 9) == clean_num:
+                    target_row = r
+                    break
+                elif str(row_num_val).strip() == str(clean_num):
+                    target_row = r
+                    break
+            
+            if client_val and order["customer_last_name"]:
+                c_clean = str(client_val).strip().lower()
+                first = (order["customer_first_name"] or "").strip().lower()
+                last = (order["customer_last_name"] or "").strip().lower()
+                if last in c_clean and (first in c_clean or not first):
+                    target_row = r
+                    break
+
+        if not target_row:
+            wb.close()
+            return {"success": False, "message": f"Riga per ordine {order_num_str} non trovata in Excel."}
+
+        # Update Col 16 (Pagamento ricevuto)
+        sheet.cell(target_row, 16).value = "Sì" if is_paid else ""
+
+        # Update Col 23 (Stato spedizione)
+        if shipping_status:
+            sheet.cell(target_row, 23).value = shipping_status
+        elif new_status:
+            sheet.cell(target_row, 23).value = new_status
+
+        # Update Col 24 (Tracking)
+        if tracking:
+            sheet.cell(target_row, 24).value = tracking
+
+        # Update Col 25 (Note)
+        if notes:
+            curr_notes = sheet.cell(target_row, 25).value or ""
+            sheet.cell(target_row, 25).value = f"{curr_notes} | {notes}".strip(" |")
+
+        wb.save(excel_path)
+        wb.close()
+
+        # Update mtime in config to PREVENT auto-watcher loop
+        new_mtime = str(os.path.getmtime(excel_path))
+        now_iso = datetime.now(timezone.utc).isoformat()
+        conn = get_db()
+        conn.execute("UPDATE config SET value = ?, updated_at = ? WHERE key = 'excel_last_mtime'", (new_mtime, now_iso))
+        conn.commit()
+        conn.close()
+
+        print(f"[Excel Sync] Ordine {order_num_str} aggiornato in Excel (riga {target_row}, Pagato: {'Sì' if is_paid else 'No'})")
+        return {"success": True, "target_row": target_row, "is_paid": is_paid, "message": f"File Excel aggiornato con successo alla riga {target_row}."}
+    except PermissionError:
+        return {"success": False, "message": "Il file Excel è bloccato da un'altra applicazione. Chiudi il file per consentire il salvataggio."}
+    except Exception as e:
+        print("[Excel Sync] Errore aggiornamento ordine in Excel:", e)
+        return {"success": False, "message": str(e)}
+
+def append_order_to_excel(order_data, excel_path=None):
+    """
+    Reverse Sync (Dashboard / Web Form -> Excel):
+    Appends a new order (e.g. from web form modulo.html) to the next available row in Excel.
+    Preserves all existing formulas and formatting.
+    """
+    if not excel_path:
+        excel_path = find_best_excel_file()
+    if not excel_path or not os.path.exists(excel_path):
+        return {"success": False, "message": "Nessun file Excel trovato."}
+
+    try:
+        wb = openpyxl.load_workbook(excel_path, data_only=False)
+        sheet = None
+        for sname in wb.sheetnames:
+            if "ordin" in sname.lower():
+                sheet = wb[sname]
+                break
+        if sheet is None:
+            sheet = wb[wb.sheetnames[0]]
+
+        # Find first empty row (where Col 3 / Cliente is empty)
+        next_row = 10
+        for r in range(10, 508):
+            c_val = sheet.cell(r, 3).value
+            if not c_val or str(c_val).strip() == "" or str(c_val).strip().lower() in ["cliente", "totale"]:
+                next_row = r
+                break
+
+        prev_row = next_row - 1
+        if not sheet.cell(next_row, 1).value:
+            sheet.cell(next_row, 1).value = f"=A{prev_row}+1"
+
+        # Col 2: Data
+        sheet.cell(next_row, 2).value = order_data.get("date", datetime.now().strftime("%Y-%m-%d"))
+
+        # Col 3: Cliente
+        sheet.cell(next_row, 3).value = order_data.get("cliente", "")
+
+        # Col 4: Telefono
+        sheet.cell(next_row, 4).value = order_data.get("phone", "")
+
+        # Col 5: Colore
+        color_val = order_data.get("color", "Blu navy")
+        sheet.cell(next_row, 5).value = "Bianco" if "bianc" in str(color_val).lower() or "white" in str(color_val).lower() else "Blu navy"
+
+        # Col 6: Taglia
+        sheet.cell(next_row, 6).value = order_data.get("size", "M").upper()
+
+        # Col 7: Quantità
+        qty = safe_int(order_data.get("qty", 1), 1)
+        sheet.cell(next_row, 7).value = qty
+
+        # Col 8: Prezzo unitario €
+        price_unit = safe_float(order_data.get("price", 25.0), 25.0)
+        sheet.cell(next_row, 8).value = price_unit
+
+        # Col 9: Spedizione addebitata €
+        ship_charged = safe_float(order_data.get("shipping_charged", 0.0), 0.0)
+        sheet.cell(next_row, 9).value = ship_charged
+
+        # Col 10: Incasso previsto € (Formula con fallback)
+        sheet.cell(next_row, 10).value = f'=IF(OR(G{next_row}="",H{next_row}=""),"",G{next_row}*H{next_row}+I{next_row})'
+
+        # Col 11: Costo unitario €
+        cost_unit = safe_float(order_data.get("cost_unit", 12.0), 12.0)
+        sheet.cell(next_row, 11).value = cost_unit
+
+        # Col 12: Costo magliette €
+        sheet.cell(next_row, 12).value = f'=IF(OR(G{next_row}="",K{next_row}=""),"",G{next_row}*K{next_row})'
+
+        # Col 13: Costo spedizione €
+        cost_ship = safe_float(order_data.get("cost_shipping", ship_charged), ship_charged)
+        sheet.cell(next_row, 13).value = cost_ship
+
+        # Col 14: Altre spese €
+        sheet.cell(next_row, 14).value = safe_float(order_data.get("other_expenses", 0.0), 0.0)
+
+        # Col 15: Utile €
+        sheet.cell(next_row, 15).value = f'=J{next_row}-L{next_row}-M{next_row}-N{next_row}'
+
+        # Col 16: Pagamento ricevuto
+        is_paid = order_data.get("is_paid", False)
+        sheet.cell(next_row, 16).value = "Sì" if is_paid else ""
+
+        # Col 17: Indirizzo e n. civico
+        sheet.cell(next_row, 17).value = order_data.get("address", "")
+
+        # Col 18: CAP
+        sheet.cell(next_row, 18).value = str(order_data.get("zip", ""))
+
+        # Col 19: Città
+        sheet.cell(next_row, 19).value = order_data.get("city", "")
+
+        # Col 20: Provincia
+        sheet.cell(next_row, 20).value = order_data.get("province", "")
+
+        # Col 21: Paese
+        sheet.cell(next_row, 21).value = "Italia"
+
+        # Col 22: Tipo spedizione
+        del_type = order_data.get("delivery_type", "domicilio")
+        sheet.cell(next_row, 22).value = "A mano" if "hand" in str(del_type).lower() or "mano" in str(del_type).lower() else "Domicilio"
+
+        # Col 23: Stato spedizione
+        sheet.cell(next_row, 23).value = order_data.get("status", "Nuovo ordine")
+
+        # Col 24: Tracking
+        sheet.cell(next_row, 24).value = order_data.get("tracking", "")
+
+        # Col 25: Note
+        sheet.cell(next_row, 25).value = order_data.get("notes", "")
+
+        wb.save(excel_path)
+        wb.close()
+
+        # Update mtime in config to PREVENT loop
+        new_mtime = str(os.path.getmtime(excel_path))
+        now_iso = datetime.now(timezone.utc).isoformat()
+        conn = get_db()
+        conn.execute("UPDATE config SET value = ?, updated_at = ? WHERE key = 'excel_last_mtime'", (new_mtime, now_iso))
+        conn.commit()
+        conn.close()
+
+        print(f"[Excel Sync] Nuovo ordine aggiunto a Excel alla riga {next_row}: {order_data.get('cliente')}")
+        return {"success": True, "row": next_row, "message": f"Nuovo ordine registrato nella riga {next_row} del foglio Excel."}
+    except PermissionError:
+        return {"success": False, "message": "Il file Excel è bloccato da un'altra applicazione. Chiudi il file per consentire il salvataggio."}
+    except Exception as e:
+        print("[Excel Sync] Errore aggiunta ordine a Excel:", e)
+        return {"success": False, "message": str(e)}
+
+def sync_db_to_excel(excel_path=None):
+    """
+    Full Reverse Sync: SQLite/Supabase Database -> Excel.
+    Aligns payment status ('Sì'/empty), shipping status, tracking, and appends
+    any orders present in DB that are not yet recorded in Excel.
+    """
+    if not excel_path:
+        excel_path = find_best_excel_file()
+    if not excel_path or not os.path.exists(excel_path):
+        return {"success": False, "message": "Nessun file Excel trovato."}
+
+    conn = get_db()
+    db_orders = conn.execute("""
+        SELECT o.*, i.product_name, i.color, i.color_name, i.size, i.quantity
+        FROM orders o
+        LEFT JOIN order_items i ON o.id = i.order_id
+        ORDER BY o.id ASC
+    """).fetchall()
+    conn.close()
+
+    try:
+        wb = openpyxl.load_workbook(excel_path, data_only=False)
+        sheet = None
+        for sname in wb.sheetnames:
+            if "ordin" in sname.lower():
+                sheet = wb[sname]
+                break
+        if sheet is None:
+            sheet = wb[wb.sheetnames[0]]
+
+        updated_count = 0
+        appended_count = 0
+
+        # Build index of existing rows in Excel
+        existing_rows = {}
+        next_empty_row = 10
+        for r in range(10, 508):
+            c_val = sheet.cell(r, 3).value
+            if c_val and str(c_val).strip() and str(c_val).strip().lower() not in ["cliente", "totale"]:
+                existing_rows[r - 9] = r
+                next_empty_row = r + 1
+            else:
+                next_empty_row = r
+                break
+
+        paid_statuses = ["Pagamento verificato", "Ordine pagato", "Spedito / Consegnato", "In preparazione"]
+
+        for o in db_orders:
+            num = None
+            if o["order_number"] and "EXCEL-" in o["order_number"]:
+                m = re.search(r'\d+', o["order_number"])
+                if m:
+                    num = int(m.group(0))
+
+            is_paid = o["status"] in paid_statuses
+            
+            if num and num in existing_rows:
+                r = existing_rows[num]
+                sheet.cell(r, 16).value = "Sì" if is_paid else ""
+                updated_count += 1
+            elif not num:
+                already_exists = False
+                for ex_r in range(10, next_empty_row):
+                    note_val = str(sheet.cell(ex_r, 25).value or "")
+                    if o["order_number"] in note_val:
+                        already_exists = True
+                        sheet.cell(ex_r, 16).value = "Sì" if is_paid else ""
+                        break
+                
+                if not already_exists and next_empty_row < 508:
+                    r = next_empty_row
+                    prev_r = r - 1
+                    sheet.cell(r, 1).value = f"=A{prev_r}+1"
+                    sheet.cell(r, 2).value = (o["created_at"] or "")[:10]
+                    sheet.cell(r, 3).value = f"{o['customer_first_name']} {o['customer_last_name']}".strip()
+                    sheet.cell(r, 4).value = o["customer_phone"] or ""
+                    sheet.cell(r, 5).value = "Bianco" if "whit" in (o["color"] or "").lower() or "bianc" in (o["color_name"] or "").lower() else "Blu navy"
+                    sheet.cell(r, 6).value = (o["size"] or "M").upper()
+                    sheet.cell(r, 7).value = safe_int(o["quantity"] or 1, 1)
+                    sheet.cell(r, 8).value = safe_float(o["shirt_price"] or 25.0, 25.0)
+                    sheet.cell(r, 9).value = safe_float(o["shipping_cost"] or 0.0, 0.0)
+                    sheet.cell(r, 10).value = f'=IF(OR(G{r}="",H{r}=""),"",G{r}*H{r}+I{r})'
+                    sheet.cell(r, 11).value = 12.0
+                    sheet.cell(r, 12).value = f'=IF(OR(G{r}="",K{r}=""),"",G{r}*K{r})'
+                    sheet.cell(r, 13).value = safe_float(o["shipping_cost"] or 0.0, 0.0)
+                    sheet.cell(r, 14).value = 0.0
+                    sheet.cell(r, 15).value = f'=J{r}-L{r}-M{r}-N{r}'
+                    sheet.cell(r, 16).value = "Sì" if is_paid else ""
+                    sheet.cell(r, 17).value = o["delivery_address"] or ""
+                    sheet.cell(r, 18).value = o["delivery_zip"] or ""
+                    sheet.cell(r, 19).value = o["delivery_city"] or ""
+                    sheet.cell(r, 20).value = o["delivery_province"] or ""
+                    sheet.cell(r, 21).value = "Italia"
+                    sheet.cell(r, 22).value = "A mano" if o["delivery_method"] == "hand" else "Domicilio"
+                    sheet.cell(r, 23).value = o["status"]
+                    sheet.cell(r, 24).value = ""
+                    sheet.cell(r, 25).value = f"Web order {o['order_number']}"
+                    next_empty_row += 1
+                    appended_count += 1
+
+        wb.save(excel_path)
+        wb.close()
+
+        # Update mtime in config to PREVENT loop
+        new_mtime = str(os.path.getmtime(excel_path))
+        now_iso = datetime.now(timezone.utc).isoformat()
+        conn = get_db()
+        conn.execute("UPDATE config SET value = ?, updated_at = ? WHERE key = 'excel_last_mtime'", (new_mtime, now_iso))
+        conn.commit()
+        conn.close()
+
+        msg = f"Sincronizzazione completata: {updated_count} stati verificati in Excel"
+        if appended_count > 0:
+            msg += f", {appended_count} nuovi ordini web aggiunti"
+        msg += "!"
+
+        return {
+            "success": True,
+            "message": msg,
+            "orders_updated": updated_count,
+            "orders_appended": appended_count,
+            "file": os.path.basename(excel_path)
+        }
+    except PermissionError:
+        return {"success": False, "message": "Il file Excel è bloccato da un'altra applicazione. Chiudi il file per consentire il salvataggio."}
+    except Exception as e:
+        print("[Excel Sync] Errore sync_db_to_excel:", e)
+        return {"success": False, "message": str(e)}
+
+def sync_bidirectional(excel_path=None):
+    """
+    Two-Way Synchronization Reconciliation:
+    1. Reads external updates from Excel -> updates DB & Supabase.
+    2. Writes back any new DB orders/status updates -> updates Excel.
+    """
+    res_in = sync_excel_to_db(excel_path=excel_path, force=False)
+    res_out = sync_db_to_excel(excel_path=excel_path)
+    return {
+        "success": True,
+        "message": "Sincronizzazione bidirezionale completata con successo!",
+        "from_excel": res_in,
+        "to_excel": res_out
     }
 
 def get_excel_sync_status():

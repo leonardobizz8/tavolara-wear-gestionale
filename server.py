@@ -96,6 +96,15 @@ def get_auth_token(handler):
     for c in cookies:
         if c.startswith("tavolara_admin_session="):
             return c.split("=", 1)[1].strip()
+
+    # Check query param ?token=
+    try:
+        parsed = urllib.parse.urlparse(handler.path)
+        qs = urllib.parse.parse_qs(parsed.query)
+        if "token" in qs and qs["token"]:
+            return qs["token"][0].strip()
+    except Exception:
+        pass
     return None
 
 AUTH_SECRET = os.environ.get("AUTH_SECRET", "tavolara_wear_permanent_auth_secret_2026_key")
@@ -539,6 +548,29 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                 send_json(self, excel_sync.get_excel_sync_status())
                 return
 
+            if path == "/api/admin/excel/download":
+                if not is_admin_authenticated(self):
+                    send_error_json(self, "Non autorizzato.", status=401)
+                    return
+                excel_path = excel_sync.find_best_excel_file()
+                if not excel_path or not os.path.exists(excel_path):
+                    send_error_json(self, "File Excel non trovato.", status=404)
+                    return
+                try:
+                    with open(excel_path, "rb") as f:
+                        file_bytes = f.read()
+                    filename = os.path.basename(excel_path)
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+                    self.send_header("Content-Length", str(len(file_bytes)))
+                    self.end_headers()
+                    self.wfile.write(file_bytes)
+                    return
+                except Exception as e:
+                    send_error_json(self, f"Errore download Excel: {str(e)}", status=500)
+                    return
+
         # -----------------------------
         # API 404 CATCH-ALL (Never fall through to HTML 404)
         # -----------------------------
@@ -851,6 +883,30 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             conn.close()
+
+            # Reverse Sync: Append new web order to Excel file
+            try:
+                excel_sync.append_order_to_excel({
+                    "order_number": order_number,
+                    "date": now_iso[:10],
+                    "cliente": f"{first_name} {last_name}",
+                    "phone": phone,
+                    "color": variant["color_name"],
+                    "size": size,
+                    "qty": quantity,
+                    "price": shirt_price,
+                    "shipping_charged": shipping_cost,
+                    "address": delivery_address or locker_name or hand_location,
+                    "zip": delivery_zip,
+                    "city": delivery_city,
+                    "province": delivery_province,
+                    "delivery_type": delivery_method,
+                    "status": "Ordine ricevuto",
+                    "is_paid": False,
+                    "notes": f"Web order #{order_number}. {delivery_notes}".strip()
+                })
+            except Exception as ex_err:
+                print(f"[Reverse Sync] Warning adding order to Excel: {ex_err}")
 
             # Success response
             response_payload = {
@@ -1183,6 +1239,22 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
             send_json(self, res)
             return
 
+        if path == "/api/admin/excel/sync-to-excel":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            res = excel_sync.sync_db_to_excel()
+            send_json(self, res)
+            return
+
+        if path == "/api/admin/excel/sync-bidirectional":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            res = excel_sync.sync_bidirectional()
+            send_json(self, res)
+            return
+
         if path == "/api/admin/excel/upload":
             if not is_admin_authenticated(self):
                 send_error_json(self, "Non autorizzato.", status=401)
@@ -1289,6 +1361,12 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
             if cur.rowcount == 0:
                 send_error_json(self, "Ordine non trovato.", status=404)
                 return
+
+            # Reverse Sync: Update corresponding order status in live Excel file
+            try:
+                excel_sync.update_excel_order_status(order_id, new_status)
+            except Exception as ex_err:
+                print(f"[Reverse Sync] Warning updating order in Excel: {ex_err}")
 
             send_json(self, {"success": True, "message": f"Stato ordine #{order_id} aggiornato a '{new_status}'."})
             return

@@ -1791,17 +1791,27 @@
 
         <!-- Continuous Connection Info Box -->
         <div style="padding: 14px 16px; border-radius: var(--radius-sm); background: var(--bg-card-subtle); border: 1px solid var(--border-main); font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
-          <strong style="color: var(--text-main); display: block; margin-bottom: 3px;">💡 Collegamento Continuo Attivo:</strong>
-          Il gestionale monitora direttamente il file su disco. Ogni salvataggio in Excel o Numbers viene sincronizzato istantaneamente senza dover ricaricare la pagina.
+          <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">💡 Sincronizzazione Bidirezionale Attiva (Two-Way Sync):</strong>
+          • <strong>Da Excel alla Dashboard:</strong> Quando modificate e salvate il file Excel (anche su Google Drive o iCloud), la Dashboard rileva le modifiche e si aggiorna automaticamente.<br>
+          • <strong>Dalla Dashboard a Excel:</strong> Quando verificate un pagamento, cambiate uno stato o arriva un nuovo ordine dal sito, il sistema scrive direttamente nel foglio Excel (colonna Pagamento ricevuto, dati cliente, taglia e totali).<br>
+          • <strong>Google Drive:</strong> Se usate Google Drive sul Mac (o cartella sincronizzata), ogni salvataggio del gestionale viene sincronizzato in cloud in pochi secondi per tutti i soci.
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-excel-sync">Chiudi</button>
-        <button type="button" class="apple-btn apple-btn-primary" id="btn-trigger-excel-sync">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          Sincronizza Ora
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <button type="button" class="apple-btn apple-btn-secondary" id="btn-download-live-excel" title="Scarica il file .xlsx aggiornato sul tuo dispositivo" style="font-size: 12px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Scarica .xlsx Aggiornato
         </button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-excel-sync">Chiudi</button>
+          <button type="button" class="apple-btn apple-btn-secondary" id="btn-trigger-excel-sync" title="Importa eventuali modifiche da Excel verso la Dashboard">
+            📥 Importa da Excel
+          </button>
+          <button type="button" class="apple-btn apple-btn-primary" id="btn-trigger-excel-write" title="Salva le modifiche della Dashboard nel foglio Excel">
+            📤 Allinea su Excel
+          </button>
+        </div>
       </div>
     </div>
   </div>

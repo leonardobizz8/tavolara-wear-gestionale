@@ -377,11 +377,19 @@
       // Map order items to match frontend structure
       let list = data.map(o => ({
         ...o,
+        customer_name: `${o.customer_first_name || ""} ${o.customer_last_name || ""}`.trim(),
         items: (o.order_items || []).map(i => ({
           ...i,
           color_name: i.color === "Blu" ? "Blu navy" : i.color
         }))
       }));
+
+      // Sort orders descending (EXCEL-059, EXCEL-058 down to EXCEL-001)
+      list.sort((a, b) => {
+        const numA = parseInt((a.order_number || "").replace(/\D/g, ""), 10) || (a.id || 0);
+        const numB = parseInt((b.order_number || "").replace(/\D/g, ""), 10) || (b.id || 0);
+        return numB - numA;
+      });
 
       if (filters.search && filters.search.trim()) {
         const term = filters.search.trim().toLowerCase();
@@ -458,7 +466,14 @@
       const { data, error } = await query;
       if (error) throw error;
 
-      let list = data || [];
+      let list = (data || []).map(row => {
+        const ref = row.reference || row.order_reference || "";
+        return {
+          ...row,
+          reference: ref,
+          order_reference: ref
+        };
+      });
       if (filters.search && filters.search.trim()) {
         const term = filters.search.trim().toLowerCase();
         list = list.filter(i =>
@@ -540,15 +555,16 @@
       if (error) throw error;
 
       // Bidirectional sync with order if linked
-      if (payload.status && data && data.order_id) {
+      if (payload.status && data) {
         const ordStatus = payload.status === "Incassata" ? "Ordine pagato" : (payload.status === "Confermata" ? "Ordine confermato" : "Ordine da pagare");
         const payStatus = payload.status === "Incassata" ? "pagato" : "da_pagare";
-        this.client
-          .from("orders")
-          .update({ status: ordStatus, payment_status: payStatus, updated_at: new Date().toISOString() })
-          .eq("id", data.order_id)
-          .then(() => {})
-          .catch(() => {});
+        const nowIso = new Date().toISOString();
+        if (data.order_id) {
+          this.client.from("orders").update({ status: ordStatus, payment_status: payStatus, updated_at: nowIso }).eq("id", data.order_id).then(() => {}).catch(() => {});
+        }
+        if (data.reference) {
+          this.client.from("orders").update({ status: ordStatus, payment_status: payStatus, updated_at: nowIso }).eq("order_number", data.reference).then(() => {}).catch(() => {});
+        }
       }
 
       return { income: data };
@@ -582,12 +598,21 @@
       const ordStatus = targetStatus === "Incassata" ? "Ordine pagato" : (targetStatus === "Confermata" ? "Ordine confermato" : "Ordine da pagare");
       const payStatus = targetStatus === "Incassata" ? "pagato" : "da_pagare";
 
-      // Check if already in transactions
-      const { data: existing } = await this.client
-        .from("transactions")
-        .select("id")
-        .eq("order_id", ordIdNum)
-        .maybeSingle();
+      // Check if already in transactions by order_id or reference (order_number)
+      let existing = null;
+      try {
+        let q = this.client.from("transactions").select("id");
+        if (ord.order_number) {
+          q = q.or(`order_id.eq.${ordIdNum},reference.eq.${ord.order_number}`);
+        } else {
+          q = q.eq("order_id", ordIdNum);
+        }
+        const { data: exData } = await q.maybeSingle();
+        existing = exData;
+      } catch (err) {
+        const { data: exData } = await this.client.from("transactions").select("id").eq("order_id", ordIdNum).maybeSingle();
+        existing = exData;
+      }
 
       let incResult;
       if (existing) {
@@ -649,27 +674,31 @@
 
       const { data: txs, error: txErr } = await this.client
         .from("transactions")
-        .select("id, order_id");
+        .select("id, order_id, reference");
       if (txErr) throw txErr;
 
       const txMap = {};
-      (txs || []).forEach(t => { if (t.order_id) txMap[t.order_id] = t.id; });
+      (txs || []).forEach(t => {
+        if (t.order_id) txMap[t.order_id] = t.id;
+        if (t.reference) txMap[t.reference] = t.id;
+      });
 
       const nowIso = new Date().toISOString();
       const ordStatus = targetStatus === "Incassata" ? "Ordine pagato" : (targetStatus === "Confermata" ? "Ordine confermato" : "Ordine da pagare");
       const payStatus = targetStatus === "Incassata" ? "pagato" : "da_pagare";
 
       // 1. Bulk update existing transactions
-      const existingIds = (orders || []).filter(o => txMap[o.id]).map(o => txMap[o.id]);
-      if (existingIds.length > 0) {
+      const existingIds = (orders || []).map(o => txMap[o.id] || txMap[o.order_number]).filter(Boolean);
+      const uniqueExistingIds = Array.from(new Set(existingIds));
+      if (uniqueExistingIds.length > 0) {
         await this.client
           .from("transactions")
           .update({ status: targetStatus, updated_at: nowIso })
-          .in("id", existingIds);
+          .in("id", uniqueExistingIds);
       }
 
       // 2. Insert missing transactions
-      const missingOrders = (orders || []).filter(o => !txMap[o.id]);
+      const missingOrders = (orders || []).filter(o => !txMap[o.id] && !txMap[o.order_number]);
       if (missingOrders.length > 0) {
         const toInsert = missingOrders.map(ord => ({
           description: `Ordine #${ord.order_number} — ${ord.customer_first_name} ${ord.customer_last_name}`,

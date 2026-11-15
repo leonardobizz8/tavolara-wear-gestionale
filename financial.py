@@ -546,6 +546,10 @@ def get_incomes(search=None, status=None, sort_by="date", order="desc", period="
 
     rows = conn.execute(sql, params).fetchall()
     incomes = [dict(r) for r in rows]
+    for inc in incomes:
+        ref = inc.get("order_reference") or inc.get("reference") or ""
+        inc["order_reference"] = ref
+        inc["reference"] = ref
 
     # Compute summary
     total = sum(i["amount"] for i in incomes)
@@ -642,6 +646,23 @@ def update_income(income_id: int, data: dict):
             WHERE id = ?
         """, (description, amount, date_str, payment_method, order_reference,
               order_id, status, notes, now_iso, income_id))
+
+        # Bidirectional sync to orders table
+        target_ord_status = "Pagamento verificato" if status == "Incassata" else ("Ordine confermato" if status == "Confermata" else "In attesa di pagamento")
+        target_pay_status = "pagato" if status == "Incassata" else "da_pagare"
+        if order_id:
+            conn.execute("""
+                UPDATE orders
+                SET status = ?, payment_status = ?, updated_at = ?
+                WHERE id = ?
+            """, (target_ord_status, target_pay_status, now_iso, order_id))
+        if order_reference:
+            conn.execute("""
+                UPDATE orders
+                SET status = ?, payment_status = ?, updated_at = ?
+                WHERE order_number = ? OR order_token = ?
+            """, (target_ord_status, target_pay_status, now_iso, order_reference, order_reference))
+
         row = conn.execute("SELECT * FROM incomes WHERE id = ?", (income_id,)).fetchone()
     conn.close()
 
@@ -669,7 +690,7 @@ def sync_income_from_order(order_id: int, target_status: str = "Incassata"):
     amount = float(order["total_amount"])
 
     # Check if already synced
-    existing = conn.execute("SELECT * FROM incomes WHERE order_id = ?", (order_id,)).fetchone()
+    existing = conn.execute("SELECT * FROM incomes WHERE order_id = ? OR order_reference = ?", (order_id, order["order_number"])).fetchone()
     with conn:
         if existing:
             conn.execute("""
@@ -716,7 +737,7 @@ def sync_all_orders_to_incomes(target_status: str = "Incassata"):
         for ord in orders:
             order_id = ord["id"]
             amount = float(ord["total_amount"])
-            existing = conn.execute("SELECT id FROM incomes WHERE order_id = ?", (order_id,)).fetchone()
+            existing = conn.execute("SELECT id FROM incomes WHERE order_id = ? OR order_reference = ?", (order_id, ord["order_number"])).fetchone()
             if existing:
                 conn.execute("""
                     UPDATE incomes SET status = ?, amount = ?, updated_at = ? WHERE id = ?

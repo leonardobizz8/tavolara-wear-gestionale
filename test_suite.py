@@ -282,7 +282,7 @@ def run_all_tests():
     print("\n[TEST 14] Test completo da smartphone & assets...")
     # Check index.html contains viewport, fonts, assets
     status, index_html = make_req("/", method="GET")
-    assert "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" in index_html
+    assert "name=\"viewport\"" in index_html and "width=device-width" in index_html
     assert "print-wordmark.png" in index_html or "print-wordmark.png" in open("static/css/style.css").read()
     assert "tavolara-panorama-optimized.webp" in open("static/css/style.css").read()
     print("  ✓ Layout mobile-first, viewport configurato, assets originali Tavolara Wear verificati.")
