@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Tavolara Wear — Gestionale Finanziario</title>
+  <title>Tavolara Wear — Gestionale Finanziario & Business Hub</title>
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#F8F7F4">
   <meta name="format-detection" content="telephone=no">
@@ -14,6 +14,8 @@
   <link rel="icon" href="/assets/favicon-48.png" sizes="48x48">
   <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
   <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Tavolara Wear">
   
   <!-- Claude Editorial Typography Fonts (Newsreader Serif + Plus Jakarta Sans) -->
@@ -21,13 +23,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/css/admin.css?v=5.0">
+  <link rel="stylesheet" href="/css/admin.css?v=6.0">
+  
+  <!-- Local self-contained Chart.js -->
   <script src="/js/chart.umd.min.js"></script>
 </head>
 <body>
 
   <!-- ============================================================== -->
-  <!-- 1. LOGIN OVERLAY -->
+  <!-- 1. LOGIN OVERLAY (APPLE GLASS MODAL) -->
   <!-- ============================================================== -->
   <div id="login-overlay" class="login-overlay">
     <div class="login-card">
@@ -39,7 +43,7 @@
         </svg>
       </div>
       <h2 class="login-title">Tavolara Wear</h2>
-      <p class="login-subtitle">Gestionale Finanziario Riservato ai Soci</p>
+      <p class="login-subtitle">Gestionale Finanziario & Business Hub Riservato ai Soci</p>
 
       <form id="login-form" action="javascript:void(0);" onsubmit="return false;">
         <div class="login-input-group">
@@ -60,54 +64,89 @@
   <div id="admin-app" class="app-layout" style="display: none;">
 
     <!-- ------------------------------------------------------------ -->
-    <!-- SIDEBAR (SOLO ENTRATE ED USCITE) -->
+    <!-- SIDEBAR -->
     <!-- ------------------------------------------------------------ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-monogram">TW</div>
         <div class="sidebar-brand-info">
           <span class="sidebar-brand-name">Tavolara Wear</span>
+          <span class="sidebar-brand-tagline">Gestionale Finanziario</span>
         </div>
       </div>
 
       <div class="sidebar-content">
+        <!-- Core Financial Navigation -->
         <div>
-          <div class="sidebar-section-title">Contabilità</div>
+          <div class="sidebar-section-title">Gestionale Principale</div>
           <nav class="sidebar-nav-group">
-            <a class="sidebar-link active" data-view="attivo" id="side-link-attivo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
-              <span>Entrate (Incassi)</span>
-              <span class="sidebar-badge" id="side-badge-incomes" style="background: rgba(5, 150, 105, 0.15); color: #059669; font-weight: 700;">59</span>
+            <a class="sidebar-link active" data-view="overview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+              <span>Overview</span>
             </a>
 
-            <a class="sidebar-link" data-view="passivo" id="side-link-passivo">
+            <a class="sidebar-link" data-view="soci">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Utile Soci (Pala & Leo)</span>
+              <span class="sidebar-badge" id="side-badge-soci" style="background: #EBF3FA; color: #1B365D;">50/50</span>
+            </a>
+
+            <a class="sidebar-link" data-view="attivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+              <span>Attivo (Entrate)</span>
+              <span class="sidebar-badge" id="side-badge-incomes">0</span>
+            </a>
+
+            <a class="sidebar-link" data-view="passivo">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
-              <span>Uscite (Spese)</span>
-              <span class="sidebar-badge" id="side-badge-expenses" style="background: rgba(225, 29, 72, 0.15); color: #e11d48; font-weight: 700;">1</span>
+              <span>Passivo (Uscite)</span>
+              <span class="sidebar-badge" id="side-badge-expenses">0</span>
+            </a>
+
+            <a class="sidebar-link" data-view="insights">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+              <span>Insights & Analytics</span>
             </a>
           </nav>
         </div>
 
-        <!-- Connection and Status Widgets -->
+        <!-- Operations & Store Navigation -->
+        <div>
+          <div class="sidebar-section-title">Operatività & Negozio</div>
+          <nav class="sidebar-nav-group">
+            <a class="sidebar-link" data-view="orders">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              <span>Ordini Clienti</span>
+              <span class="sidebar-badge" id="side-badge-orders">0</span>
+            </a>
+
+            <a class="sidebar-link" data-view="config">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span>Impostazioni & Stock</span>
+            </a>
+          </nav>
+        </div>
+
+        <!-- Quick Actions Card inside Sidebar -->
         <div style="margin-top: auto; padding-top: 10px;">
-          <!-- Supabase Status Card -->
+          <!-- Supabase Connection Widget -->
           <div class="glass-card" style="padding: 12px 14px; margin-bottom: 10px;" id="sidebar-supabase-card">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
-              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand-navy); letter-spacing: 0.5px;">Cloud Supabase</span>
-              <span class="status-pill incassata" style="font-size: 10px; padding: 2px 6px;" id="side-supabase-badge">● Sincronizzato</span>
+              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand-navy); letter-spacing: 0.5px;">Database Supabase</span>
+              <span class="status-pill incassata" style="font-size: 10px; padding: 2px 6px;" id="side-supabase-badge">Attivo</span>
             </div>
-            <div style="font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="side-supabase-project">Tavolara Wear (Cloud)</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="side-supabase-status">Database Realtime Attivo</div>
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="side-supabase-project">Tavolara Wear</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="side-supabase-status">Centralizzato · Cloud RLS</div>
           </div>
 
-          <!-- Excel Connection Card -->
-          <div class="glass-card" style="padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: transform 0.15s ease;" id="sidebar-excel-card" title="Clicca per visualizzare lo stato del file Excel">
+          <!-- Excel Live Connection Widget -->
+          <div class="glass-card" style="padding: 12px 14px; margin-bottom: 10px; cursor: pointer; transition: transform 0.15s ease;" id="sidebar-excel-card" title="Clicca per gestire il file Excel collegato">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
               <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--brand-navy); letter-spacing: 0.5px;">Excel Collegato</span>
               <span class="status-pill incassata" style="font-size: 10px; padding: 2px 6px;" id="side-excel-badge">Live</span>
             </div>
             <div style="font-size: 12px; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="side-excel-filename">tavolara_ordini_live.xlsx</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="side-excel-stats">59 ordini · 1.475 €</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="side-excel-stats">58 ordini · 1.420 €</div>
           </div>
 
           <a href="/modulo" target="_blank" class="apple-btn apple-btn-secondary apple-btn-sm" style="width: 100%; justify-content: space-between; margin-bottom: 8px;">
@@ -115,9 +154,9 @@
             <span style="font-size: 11px; opacity: 0.6;">Online</span>
           </a>
 
-          <button type="button" class="apple-btn apple-btn-ghost apple-btn-sm" id="btn-force-update" style="width: 100%; justify-content: center; font-size: 11.5px; margin-bottom: 4px;" title="Ricarica l'ultima versione dell'app">
+          <button type="button" class="apple-btn apple-btn-ghost apple-btn-sm" id="btn-force-update" style="width: 100%; justify-content: center; font-size: 11.5px; margin-bottom: 4px;" title="Forza il ricaricamento dell'ultima versione">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-            <span>Aggiorna Dati</span>
+            <span>Aggiorna App</span>
           </button>
         </div>
       </div>
@@ -127,7 +166,7 @@
           <div class="sidebar-user-avatar">TW</div>
           <div class="sidebar-user-info">
             <span class="sidebar-user-name">Soci Tavolara Wear</span>
-            <span class="sidebar-user-status">Pala & Leo (50/50)</span>
+            <span class="sidebar-user-status">Connesso</span>
           </div>
         </div>
         <button type="button" class="apple-btn apple-btn-ghost apple-btn-sm" id="btn-logout" style="width: 100%; justify-content: flex-start;">
@@ -140,62 +179,55 @@
     <!-- ------------------------------------------------------------ -->
     <!-- MAIN CONTENT VIEWPORT -->
     <!-- ------------------------------------------------------------ -->
-    <div class="main-viewport">
+    <div class="main-wrapper">
       
-      <!-- TOP HEADER (REVOLUT ULTRA STYLE) -->
+      <!-- Top Sticky Bar -->
       <header class="top-header">
-        <div class="header-top-row">
-          <div class="header-left">
-            <button type="button" class="mobile-menu-toggle revo-circle-btn" id="mobile-toggle" aria-label="Menu Soci">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-            <div class="header-title-group">
-              <h1 class="header-title revo-title" id="page-title">Analytics</h1>
-            </div>
-          </div>
-
-          <div class="header-actions-desktop" style="display: flex; gap: 8px; align-items: center;">
-            <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm" id="btn-quick-add-income">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              + Entrata
-            </button>
-            <button type="button" class="apple-btn apple-btn-rose apple-btn-sm" id="btn-quick-add-expense">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              + Spesa
-            </button>
+        <div class="header-left">
+          <button type="button" class="mobile-menu-toggle" id="mobile-toggle">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="header-title-group">
+            <h1 class="header-title" id="page-title">Overview Finanziaria</h1>
+            <span class="header-subtitle" id="page-subtitle">Quadro economico consolidato Tavolara Wear</span>
           </div>
         </div>
 
-        <div class="header-right revo-pills-row">
-          <div class="revo-filter-pills-left">
-            <!-- Left Pill: Soci Tavolara ⌵ -->
-            <div class="revo-pill" id="pill-soci-toggle" title="Soci Tavolara Wear">
-              <div class="revo-pill-avatar">TW</div>
-              <span>Soci Tavolara</span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
+        <div class="header-right">
+          <!-- Time Range Segmented Control -->
+          <div class="segmented-control" id="time-filter-control">
+            <button type="button" class="segment-item active" data-period="all">Tutto</button>
+            <button type="button" class="segment-item" data-period="month">Mese</button>
+            <button type="button" class="segment-item" data-period="quarter">Trimestre</button>
+            <button type="button" class="segment-item" data-period="year">Anno</button>
+            <button type="button" class="segment-item" data-period="week">Settimana</button>
+            <button type="button" class="segment-item" data-period="today">Oggi</button>
+            <button type="button" class="segment-item" data-period="custom">📅 Date</button>
+          </div>
 
-            <!-- Right Pill: Period selector -->
-            <div class="segmented-control" id="time-filter-control">
-              <button type="button" class="segment-item active" data-period="all">Tutto</button>
-              <button type="button" class="segment-item" data-period="month">Questo mese</button>
-              <button type="button" class="segment-item" data-period="quarter">Trimestre</button>
-              <button type="button" class="segment-item" data-period="year">Anno</button>
-              <button type="button" class="segment-item" data-period="custom">📅 Date</button>
-            </div>
-
-            <div class="custom-date-box" id="custom-date-box">
-              <input type="date" id="custom-date-start" title="Data inizio">
-              <span style="color: var(--text-muted); font-size: 11px;">→</span>
-              <input type="date" id="custom-date-end" title="Data fine">
-              <button type="button" class="apple-btn apple-btn-ice apple-btn-sm" id="btn-apply-custom-date">Applica</button>
-            </div>
+          <!-- Custom Date Pickers (Shown when custom active) -->
+          <div class="custom-date-box" id="custom-date-box">
+            <input type="date" id="custom-date-start" title="Data inizio">
+            <span style="color: var(--text-muted); font-size: 11px;">→</span>
+            <input type="date" id="custom-date-end" title="Data fine">
+            <button type="button" class="apple-btn apple-btn-ice apple-btn-sm" id="btn-apply-custom-date">Applica</button>
           </div>
 
           <!-- Excel Sync Pill Button -->
-          <button type="button" class="revo-pill" id="btn-open-excel-modal" title="Stato collegamento file Excel e Cloud">
-            <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--olive); box-shadow: 0 0 8px var(--olive); display: inline-block;" id="header-excel-dot"></span>
-            <span id="header-excel-label">Excel: 59 Ordini</span>
+          <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-open-excel-modal" title="Stato collegamento file Excel">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--olive); display: inline-block;" id="header-excel-dot"></span>
+            <span id="header-excel-label">Excel: 58 Ordini</span>
+          </button>
+
+          <!-- Quick Action Buttons -->
+          <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm" id="btn-quick-add-income">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Entrata
+          </button>
+
+          <button type="button" class="apple-btn apple-btn-rose apple-btn-sm" id="btn-quick-add-expense">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + Spesa
           </button>
         </div>
       </header>
@@ -204,127 +236,617 @@
       <main class="dashboard-content">
 
         <!-- ======================================================== -->
-        <!-- REVOLUT FINANCIAL ANALYTICS HERO CARDS -->
+        <!-- VIEW 1: OVERVIEW -->
         <!-- ======================================================== -->
-        <div class="revo-hero-container" id="global-kpi-grid">
-
-          <!-- CARD 1: SPENT (Full width) -->
-          <div class="revo-card revo-card-spent" id="card-spent">
-            <div class="revo-card-inner">
-              <span class="revo-label">Spent</span>
-              <div class="revo-big-value rose-val" id="global-kpi-expenses">€ 708,00</div>
-              <div class="revo-caption" id="global-kpi-expenses-sub">1 uscita registrata · Produzione stock 59 T-shirt</div>
+        <section id="view-overview" class="view-section active">
+          
+          <!-- 4 Hero KPI Cards -->
+          <div class="kpi-hero-grid">
+            <!-- Totale Entrate -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Totale Entrate</span>
+                <div class="kpi-icon-pill emerald">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value emerald-val" id="ov-total-incomes">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="ov-incomes-sub">Incassate: € 0,00</span>
+                <span class="kpi-badge positive" id="ov-incomes-badge">Attivo</span>
+              </div>
             </div>
-            <!-- Grid pattern watermark in background right -->
-            <div class="revo-grid-overlay" aria-hidden="true"></div>
+
+            <!-- Totale Uscite -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Totale Uscite</span>
+                <div class="kpi-icon-pill rose">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value rose-val" id="ov-total-expenses">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="ov-expenses-sub">4 categorie monitorate</span>
+                <span class="kpi-badge negative" id="ov-expenses-badge">Passivo</span>
+              </div>
+            </div>
+
+            <!-- Saldo Attuale -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Saldo Attuale</span>
+                <div class="kpi-icon-pill navy">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="ov-current-balance">€ 0,00</div>
+              <div class="kpi-footer">
+                <span>Entrate − Uscite</span>
+                <span class="kpi-badge" id="ov-balance-badge">Netto</span>
+              </div>
+            </div>
+
+            <!-- Utile Lordo -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Utile Lordo</span>
+                <div class="kpi-icon-pill amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="ov-gross-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="ov-gross-margin">Margine: 0.0%</span>
+                <span class="kpi-badge positive" id="ov-margin-badge">Produzione</span>
+              </div>
+            </div>
           </div>
 
-          <!-- 2-COLUMN ROW: INCOME & NET CASHFLOW -->
-          <div class="revo-row-2col">
-            
-            <!-- CARD 2: INCOME -->
-            <div class="revo-card revo-card-income" id="card-income">
-              <div class="revo-card-inner">
-                <span class="revo-label">Income</span>
-                <div class="revo-big-value emerald-val" id="global-kpi-incomes">€ 1.475,00</div>
-                <div class="revo-caption" id="global-kpi-incomes-sub">59 ordini incassati</div>
+          <!-- 4 Secondary KPI Cards -->
+          <div class="kpi-secondary-grid">
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
               </div>
-              <!-- Vertical bars watermark at bottom -->
-              <div class="revo-bars-overlay" aria-hidden="true">
-                <span style="height: 35%;"></span>
-                <span style="height: 50%;"></span>
-                <span style="height: 72%;"></span>
-                <span style="height: 40%;"></span>
-                <span style="height: 85%;"></span>
-                <span style="height: 60%;"></span>
-                <span style="height: 95%;"></span>
-                <span style="height: 75%;"></span>
-                <span style="height: 65%;"></span>
-                <span style="height: 80%;"></span>
-                <span style="height: 55%;"></span>
-                <span style="height: 90%;"></span>
-                <span style="height: 100%;"></span>
-                <span style="height: 70%;"></span>
-                <span style="height: 85%;"></span>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Magliette Vendute</span>
+                <span class="kpi-subcard-val" id="ov-shirts-sold">0</span>
               </div>
             </div>
 
-            <!-- CARD 3: NET CASHFLOW -->
-            <div class="revo-card revo-card-net" id="card-net">
-              <div class="revo-card-inner">
-                <span class="revo-label">Net cashflow</span>
-                <div class="revo-big-value emerald-val" id="global-kpi-net">+ 767,00 €</div>
-                <div class="revo-cashflow-indicators">
-                  <div class="revo-cashflow-row in">
-                    <span class="revo-badge-dot in">⊕</span>
-                    <span class="revo-cashflow-text" id="global-kpi-net-inflow">+ 1.475 €</span>
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Ordini Ricevuti</span>
+                <span class="kpi-subcard-val" id="ov-orders-count">0</span>
+              </div>
+            </div>
+
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="18" x2="12" y2="20"/><line x1="12" y1="4" x2="12" y2="6"/></svg>
+              </div>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Costo Medio / Maglietta</span>
+                <span class="kpi-subcard-val" id="ov-avg-shirt-cost">€ 0,00</span>
+              </div>
+            </div>
+
+            <div class="glass-card kpi-subcard">
+              <div class="kpi-subcard-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div class="kpi-subcard-content">
+                <span class="kpi-subcard-label">Ricavo Medio / Ordine</span>
+                <span class="kpi-subcard-val" id="ov-avg-order-rev">€ 0,00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Executive Partner Profit Preview Card -->
+          <div class="glass-card soci-overview-card" id="ov-soci-card">
+            <div class="soci-overview-header">
+              <div class="soci-overview-title-group">
+                <div class="soci-overview-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <div>
+                  <h3 class="soci-overview-title">Ripartizione Utili Soci · Tavolara Wear</h3>
+                  <span class="soci-overview-sub">Divisione margine utile tra Andrea Palamidesi (Pala) & Leonardo Bizzotto (Leo)</span>
+                </div>
+              </div>
+              <div class="soci-overview-actions">
+                <span class="status-pill incassata" id="ov-soci-ratio-pill">Quote 50 / 50</span>
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-goto-soci-view" style="font-size: 12px; gap: 6px;">
+                  <span>Dettaglio Utili Soci</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="soci-overview-grid">
+              <!-- Utile Totale Netto -->
+              <div class="soci-overview-col soci-total-col">
+                <span class="soci-col-label">Utile Netto Complessivo</span>
+                <div class="soci-col-val" id="ov-soci-total-profit">€ 0,00</div>
+                <span class="soci-col-sub" id="ov-soci-total-sub">Incassi − Costi produzione</span>
+              </div>
+
+              <!-- Utile Pala -->
+              <div class="soci-overview-col soci-pala-col">
+                <div class="soci-col-partner-header">
+                  <div class="soci-avatar avatar-pala">AP</div>
+                  <div>
+                    <span class="soci-col-name">Andrea Palamidesi</span>
+                    <span class="soci-col-tag">Utile Pala · 50%</span>
                   </div>
-                  <div class="revo-cashflow-row out">
-                    <span class="revo-badge-dot out">⊖</span>
-                    <span class="revo-cashflow-text" id="global-kpi-net-outflow">- 708 €</span>
+                </div>
+                <div class="soci-col-val emerald-val" id="ov-soci-pala-profit">€ 0,00</div>
+                <span class="soci-col-sub" id="ov-soci-pala-sub">Disponibile: € 0,00</span>
+              </div>
+
+              <!-- Utile Leo -->
+              <div class="soci-overview-col soci-leo-col">
+                <div class="soci-col-partner-header">
+                  <div class="soci-avatar avatar-leo">LB</div>
+                  <div>
+                    <span class="soci-col-name">Leonardo Bizzotto</span>
+                    <span class="soci-col-tag">Utile Leo · 50%</span>
+                  </div>
+                </div>
+                <div class="soci-col-val emerald-val" id="ov-soci-leo-profit">€ 0,00</div>
+                <span class="soci-col-sub" id="ov-soci-leo-sub">Disponibile: € 0,00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Modern Gradient Charts Grid -->
+          <div class="charts-grid-2x2">
+            <!-- Chart 1: Entrate e Uscite nel Tempo -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Entrate e Uscite nel Tempo</h3>
+                  <span class="chart-subtitle">Confronto flussi di cassa giornalieri</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-cashflow"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 2: Andamento del Saldo -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Andamento del Saldo</h3>
+                  <span class="chart-subtitle">Evoluzione cumulativa del patrimonio netto</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-balance"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 3: Distribuzione delle Spese per Categoria -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Distribuzione Spese per Categoria</h3>
+                  <span class="chart-subtitle">Trasporto, Imballaggio, Prove, Magliette</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-expenses-cat"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 4: Andamento delle Vendite -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Andamento Vendite Magliette</h3>
+                  <span class="chart-subtitle">Volume capi venduti nel tempo</span>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="chart-sales"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW: RIPARTIZIONE UTILI SOCI (PALA & LEO) -->
+        <!-- ======================================================== -->
+        <section id="view-soci" class="view-section">
+
+          <!-- Header Toolbar with Ratios & Actions -->
+          <div class="glass-card" style="padding: 18px 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <h2 style="font-family: var(--font-serif); font-size: 20px; font-weight: 600; margin: 0; color: var(--text-main);">Ripartizione Utili Soci</h2>
+                  <span class="status-pill incassata" id="soci-ratio-indicator">Quote 50% Pala / 50% Leo</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 0 0;">
+                  Divisione trasparente del margine aziendale tra i soci fondatori Andrea Palamidesi (Pala) e Leonardo Bizzotto (Leo).
+                </p>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <div class="segmented-control" id="soci-ratio-selector" style="margin: 0;">
+                  <button type="button" class="segment-item active" data-ratio="50">50% / 50%</button>
+                  <button type="button" class="segment-item" data-ratio="60">60% Pala / 40% Leo</button>
+                  <button type="button" class="segment-item" data-ratio="40">40% Pala / 60% Leo</button>
+                </div>
+
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-soci-csv" title="Esporta prospetto ripartizione in formato CSV/Excel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Esporta CSV Soci</span>
+                </button>
+
+                <button type="button" class="apple-btn apple-btn-ghost apple-btn-sm" id="btn-print-soci" title="Stampa o salva prospetto in PDF">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  <span>Stampa Prospetto</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Hero KPI Cards (Totale Azienda, Utile Pala, Utile Leo) -->
+          <div class="kpi-hero-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <!-- Utile Complessivo -->
+            <div class="glass-card kpi-card">
+              <div class="kpi-card-header">
+                <span class="kpi-label">Utile Netto Complessivo</span>
+                <div class="kpi-icon-pill amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </div>
+              </div>
+              <div class="kpi-value" id="soci-kpi-total-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="soci-kpi-total-detail">Fatturato: € 0,00 · Costi: € 0,00</span>
+                <span class="kpi-badge positive" id="soci-kpi-total-margin">Margine 0%</span>
+              </div>
+            </div>
+
+            <!-- Utile Pala -->
+            <div class="glass-card kpi-card" style="border-top: 3px solid #1B365D;">
+              <div class="kpi-card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="soci-avatar avatar-pala" style="width: 26px; height: 26px; font-size: 11px;">AP</div>
+                  <span class="kpi-label">Utile Andrea (Pala)</span>
+                </div>
+                <span class="partner-badge-pill pala" id="soci-badge-pala-ratio">Quota 50%</span>
+              </div>
+              <div class="kpi-value emerald-val" id="soci-kpi-pala-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="soci-kpi-pala-sub">Incassato: € 0,00 · In attesa: € 0,00</span>
+                <span class="kpi-badge positive" id="soci-pala-status-badge">Disponibile</span>
+              </div>
+            </div>
+
+            <!-- Utile Leo -->
+            <div class="glass-card kpi-card" style="border-top: 3px solid #C4775B;">
+              <div class="kpi-card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="soci-avatar avatar-leo" style="width: 26px; height: 26px; font-size: 11px;">LB</div>
+                  <span class="kpi-label">Utile Leonardo (Leo)</span>
+                </div>
+                <span class="partner-badge-pill leo" id="soci-badge-leo-ratio">Quota 50%</span>
+              </div>
+              <div class="kpi-value emerald-val" id="soci-kpi-leo-profit">€ 0,00</div>
+              <div class="kpi-footer">
+                <span id="soci-kpi-leo-sub">Incassato: € 0,00 · In attesa: € 0,00</span>
+                <span class="kpi-badge positive" id="soci-leo-status-badge">Disponibile</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- THE TWO MASTER PARTNER CARDS (Side-by-side Desktop, Stacked Mobile) -->
+          <div class="soci-partners-grid">
+            <!-- PALA MASTER CARD -->
+            <div class="partner-master-card partner-card-pala" id="card-partner-pala">
+              <div class="partner-card-header">
+                <div class="partner-identity">
+                  <div class="partner-avatar-lg avatar-pala">AP</div>
+                  <div class="partner-name-block">
+                    <h3>Andrea Palamidesi</h3>
+                    <span>Co-Founder & Socio Tavolara Wear</span>
+                  </div>
+                </div>
+                <span class="partner-badge-pill pala" id="pala-card-badge">Quota 50.0%</span>
+              </div>
+
+              <div class="partner-hero-box pala-theme">
+                <span class="partner-hero-label">Utile Netto Maturato Spettante</span>
+                <div class="partner-hero-amount" id="pala-hero-profit">€ 0,00</div>
+
+                <div class="partner-progress-container">
+                  <div class="partner-progress-track">
+                    <div class="partner-progress-bar pala-fill" id="pala-progress-bar" style="width: 0%;"></div>
+                  </div>
+                  <div class="partner-progress-labels">
+                    <span id="pala-progress-collected-text">Incassato: € 0,00 (0%)</span>
+                    <span id="pala-progress-pending-text">In attesa: € 0,00</span>
                   </div>
                 </div>
               </div>
+
+              <div class="partner-stats-grid">
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Quota Già Incassata</span>
+                  <div class="partner-stat-val emerald-val" id="pala-stat-collected">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">In Attesa di Bonifico</span>
+                  <div class="partner-stat-val" style="color: var(--amber-warm);" id="pala-stat-pending">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Capi di Competenza</span>
+                  <div class="partner-stat-val" id="pala-stat-shirts">0 capi</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Margine Medio / Capo</span>
+                  <div class="partner-stat-val" id="pala-stat-avg">€ 0,00</div>
+                </div>
+              </div>
+
+              <div class="partner-footer-info">
+                <span>Riferimento Excel: <strong id="pala-excel-ref">€ 362,00</strong></span>
+                <span style="color: var(--olive); font-weight: 600;">✓ Ripartizione Attiva</span>
+              </div>
+            </div>
+
+            <!-- LEO MASTER CARD -->
+            <div class="partner-master-card partner-card-leo" id="card-partner-leo">
+              <div class="partner-card-header">
+                <div class="partner-identity">
+                  <div class="partner-avatar-lg avatar-leo">LB</div>
+                  <div class="partner-name-block">
+                    <h3>Leonardo Bizzotto</h3>
+                    <span>Co-Founder & Socio Tavolara Wear</span>
+                  </div>
+                </div>
+                <span class="partner-badge-pill leo" id="leo-card-badge">Quota 50.0%</span>
+              </div>
+
+              <div class="partner-hero-box leo-theme">
+                <span class="partner-hero-label">Utile Netto Maturato Spettante</span>
+                <div class="partner-hero-amount" id="leo-hero-profit">€ 0,00</div>
+
+                <div class="partner-progress-container">
+                  <div class="partner-progress-track">
+                    <div class="partner-progress-bar leo-fill" id="leo-progress-bar" style="width: 0%;"></div>
+                  </div>
+                  <div class="partner-progress-labels">
+                    <span id="leo-progress-collected-text">Incassato: € 0,00 (0%)</span>
+                    <span id="leo-progress-pending-text">In attesa: € 0,00</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="partner-stats-grid">
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Quota Già Incassata</span>
+                  <div class="partner-stat-val emerald-val" id="leo-stat-collected">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">In Attesa di Bonifico</span>
+                  <div class="partner-stat-val" style="color: var(--amber-warm);" id="leo-stat-pending">€ 0,00</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Capi di Competenza</span>
+                  <div class="partner-stat-val" id="leo-stat-shirts">0 capi</div>
+                </div>
+                <div class="partner-stat-box">
+                  <span class="partner-stat-label">Margine Medio / Capo</span>
+                  <div class="partner-stat-val" id="leo-stat-avg">€ 0,00</div>
+                </div>
+              </div>
+
+              <div class="partner-footer-info">
+                <span>Riferimento Excel: <strong id="leo-excel-ref">€ 362,00</strong></span>
+                <span style="color: var(--olive); font-weight: 600;">✓ Ripartizione Attiva</span>
+              </div>
             </div>
           </div>
 
-          <!-- CARD 4: TOTAL ASSETS / SOCI 50-50 (Full width) -->
-          <div class="revo-card revo-card-assets" id="card-assets">
-            <div class="revo-card-inner">
-              <div class="revo-card-topbar">
-                <span class="revo-label">Total assets</span>
-                <span class="revo-pill-tag">Soci 50/50</span>
-              </div>
-              <div class="revo-big-value" id="global-kpi-assets">€ 767,00</div>
-              
-              <div class="revo-assets-split">
-                <div class="revo-split-col">
-                  <span class="revo-split-name">Pala (50%)</span>
-                  <span class="revo-split-amount" id="global-kpi-pala">€ 383,50</span>
-                </div>
-                <div class="revo-split-line"></div>
-                <div class="revo-split-col">
-                  <span class="revo-split-name">Leo (50%)</span>
-                  <span class="revo-split-amount" id="global-kpi-leo">€ 383,50</span>
+          <!-- 2 CHARTS: Donut & Timeline -->
+          <div class="charts-grid-2x2">
+            <!-- Chart 1: Donut Distribution -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Suddivisione Quote Utile Soci</h3>
+                  <span class="chart-subtitle">Proporzione utile netto tra Andrea (Pala) e Leonardo (Leo)</span>
                 </div>
               </div>
-              <div class="revo-caption" id="global-kpi-net-sub" style="margin-top: 8px;">+52.0% margine netto · Quota spettante per ciascun socio</div>
+              <div class="chart-container" style="height: 250px;">
+                <canvas id="chart-soci-donut"></canvas>
+              </div>
             </div>
-            <!-- Concentric circular ring watermark on the right -->
-            <div class="revo-ring-overlay" aria-hidden="true"></div>
+
+            <!-- Chart 2: Timeline Evolution -->
+            <div class="glass-card chart-card">
+              <div class="chart-header">
+                <div class="chart-title-group">
+                  <h3 class="chart-title">Evoluzione Utile Soci nel Tempo</h3>
+                  <span class="chart-subtitle">Crescita progressiva dell'utile spettante per data</span>
+                </div>
+              </div>
+              <div class="chart-container" style="height: 250px;">
+                <canvas id="chart-soci-timeline"></canvas>
+              </div>
+            </div>
           </div>
 
-        </div>
+          <!-- INTERACTIVE SIMULATOR FOR PARTNER PROFITS -->
+          <div class="soci-simulator-card">
+            <div class="soci-simulator-header">
+              <div>
+                <h3 style="font-family: var(--font-serif); font-size: 19px; font-weight: 600; margin: 0; color: var(--text-main);">
+                  Simulatore di Redditività & Distribuzione Utile
+                </h3>
+                <span style="font-size: 12.5px; color: var(--text-secondary); display: block; margin-top: 2px;">
+                  Simula scenari di acquisto stock e vendite per calcolare in tempo reale il guadagno netto di Pala e Leo.
+                </span>
+              </div>
+
+              <!-- Preset buttons based on actual Tavolara Wear lot sizes -->
+              <div class="soci-simulator-presets">
+                <button type="button" class="soci-preset-btn active" data-preset="base">Lotto 65 Capi (Base)</button>
+                <button type="button" class="soci-preset-btn" data-preset="scale">Lotto 100 Capi (Scala)</button>
+                <button type="button" class="soci-preset-btn" data-preset="summer">Target 250 Capi (Summer)</button>
+              </div>
+            </div>
+
+            <div class="soci-simulator-body">
+              <!-- Controls Column -->
+              <div class="soci-simulator-controls">
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Quantità Capi Venduti</span>
+                    <strong id="sim-shirts-display">65 capi</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-shirts-slider" min="10" max="300" step="5" value="65">
+                </div>
+
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Prezzo Medio Unitario Vendita (€)</span>
+                    <strong id="sim-price-display">25.00 €</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-price-slider" min="15" max="40" step="1" value="25">
+                </div>
+
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Costo Acquisto Capo Fornitore (€)</span>
+                    <strong id="sim-cost-display">12.00 €</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-cost-slider" min="8" max="18" step="0.5" value="12">
+                </div>
+
+                <div class="soci-control-group">
+                  <div class="soci-control-label-row">
+                    <span>Spese Extra (Spedizione / Campioni €)</span>
+                    <strong id="sim-extra-display">0.00 €</strong>
+                  </div>
+                  <input type="range" class="soci-control-slider" id="sim-extra-slider" min="0" max="300" step="10" value="0">
+                </div>
+              </div>
+
+              <!-- Live Dynamic Results Box -->
+              <div class="soci-simulator-result-box">
+                <div class="soci-sim-result-row">
+                  <span>Incasso Lordo Previsto</span>
+                  <strong id="sim-res-revenue">€ 1.625,00</strong>
+                </div>
+                <div class="soci-sim-result-row">
+                  <span>Costi Complessivi Produzione</span>
+                  <strong id="sim-res-costs">€ 780,00</strong>
+                </div>
+                <div class="soci-sim-result-row total-row">
+                  <span>Utile Netto Totale Stimato</span>
+                  <span class="emerald-val" style="font-size: 20px;" id="sim-res-profit">€ 845,00</span>
+                </div>
+
+                <!-- Partner splits -->
+                <div class="soci-sim-partner-row pala">
+                  <div>
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8;">Guadagno Netto Pala</div>
+                    <div style="font-size: 13.5px; font-weight: 700;">Andrea Palamidesi (50%)</div>
+                  </div>
+                  <div class="soci-sim-partner-val" id="sim-res-pala">€ 422,50</div>
+                </div>
+
+                <div class="soci-sim-partner-row leo">
+                  <div>
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.8;">Guadagno Netto Leo</div>
+                    <div style="font-size: 13.5px; font-weight: 700;">Leonardo Bizzotto (50%)</div>
+                  </div>
+                  <div class="soci-sim-partner-val" id="sim-res-leo">€ 422,50</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DETAILED ORDERS ATTRIBUTION TABLE -->
+          <div class="glass-card" style="padding: 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <h3 style="font-family: var(--font-serif); font-size: 18px; font-weight: 600; margin: 0; color: var(--text-main);">
+                  Registro Quote Ordini Clienti
+                </h3>
+                <span style="font-size: 12px; color: var(--text-secondary); display: block; margin-top: 2px;">
+                  Dettaglio analitico per ciascun ordine con calcolo dell'utile di riga e quota spettante a ciascun socio
+                </span>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <input type="search" id="soci-orders-search" placeholder="Cerca cliente o N° ordine..." style="padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-main); font-size: 13px; min-width: 220px;">
+                <select id="soci-orders-filter-status" style="padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-main); font-size: 13px; background: white;">
+                  <option value="all">Tutti gli ordini</option>
+                  <option value="paid">Solo incassati</option>
+                  <option value="pending">Solo in attesa</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="data-table-container">
+              <table class="data-table" id="soci-orders-table">
+                <thead>
+                  <tr>
+                    <th>N. Ordine</th>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Capi</th>
+                    <th>Incasso</th>
+                    <th>Costi</th>
+                    <th>Utile Ordine</th>
+                    <th style="color: #1B365D;">Quota Pala (50%)</th>
+                    <th style="color: #C4775B;">Quota Leo (50%)</th>
+                    <th>Stato</th>
+                  </tr>
+                </thead>
+                <tbody id="soci-orders-tbody">
+                  <tr>
+                    <td colspan="10" style="text-align: center; padding: 30px; color: var(--text-muted);">
+                      Caricamento registro quote soci in corso...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 12.5px; color: var(--text-secondary);">
+              <span id="soci-orders-count-label">58 ordini visualizzati</span>
+              <span id="soci-orders-total-sum">Totale Utile Registro: € 724,00 (Pala: € 362,00 | Leo: € 362,00)</span>
+            </div>
+          </div>
+
+        </section>
 
         <!-- ======================================================== -->
-        <!-- SELETTORE PRIMARIO: ENTRATE vs USCITE -->
+        <!-- VIEW 2: ATTIVO (ENTRATE) -->
         <!-- ======================================================== -->
-        <div class="primary-tab-switcher revo-tab-switcher">
-          <button type="button" class="tab-pill-btn revo-tab-btn active" id="tab-btn-attivo" data-view="attivo">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="7 17 17 7"/><polyline points="7 7 17 7 17 17"/></svg>
-            <span>Entrate (Incassi)</span>
-            <span class="status-pill incassata" id="tab-badge-incomes" style="font-size: 12px; padding: 2px 9px;">59</span>
-          </button>
-
-          <button type="button" class="tab-pill-btn revo-tab-btn" id="tab-btn-passivo" data-view="passivo">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="17 7 7 17"/><polyline points="17 17 7 17 7 7"/></svg>
-            <span>Uscite (Spese)</span>
-            <span class="status-pill da-pagare" id="tab-badge-expenses" style="font-size: 12px; padding: 2px 9px;">1</span>
-          </button>
-        </div>
-
-                <section id="view-attivo" class="view-section active">
-          <!-- Sub KPIs -->
-          <div class="kpi-hero-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 18px;">
+        <section id="view-attivo" class="view-section">
+          <!-- Incomes Summary Bar -->
+          <div class="kpi-hero-grid">
             <div class="glass-card kpi-card">
               <span class="kpi-label">Totale Entrate Registrate</span>
-              <div class="kpi-value emerald-val" id="inc-sum-total">€ 1.475,00</div>
-              <span class="kpi-footer" id="inc-sum-count">59 movimenti registrati</span>
+              <div class="kpi-value emerald-val" id="inc-sum-total">€ 0,00</div>
+              <span class="kpi-footer" id="inc-sum-count">0 movimenti</span>
             </div>
 
             <div class="glass-card kpi-card">
               <span class="kpi-label">Effettivamente Incassate</span>
-              <div class="kpi-value" id="inc-sum-collected" style="color: var(--emerald);">€ 1.475,00</div>
+              <div class="kpi-value" id="inc-sum-collected" style="color: var(--emerald);">€ 0,00</div>
               <span class="kpi-footer">Bonifici verificati & incassati</span>
             </div>
 
@@ -332,6 +854,12 @@
               <span class="kpi-label">In Attesa di Accredito</span>
               <div class="kpi-value" id="inc-sum-pending" style="color: var(--amber);">€ 0,00</div>
               <span class="kpi-footer">Pagamenti non ancora riscontrati</span>
+            </div>
+
+            <div class="glass-card kpi-card">
+              <span class="kpi-label">Confermate</span>
+              <div class="kpi-value" id="inc-sum-confirmed" style="color: var(--brand-ice);">€ 0,00</div>
+              <span class="kpi-footer">Ordini approvati dai soci</span>
             </div>
           </div>
 
@@ -341,7 +869,7 @@
               <!-- Search box -->
               <div class="table-search-box">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="incomes-search" placeholder="Cerca cliente, ordine, causale...">
+                <input type="text" id="incomes-search" placeholder="Cerca descrizione, ordine, metodo...">
               </div>
 
               <!-- Status filter pills -->
@@ -349,10 +877,16 @@
                 <button type="button" class="segment-item active" data-status="all">Tutte</button>
                 <button type="button" class="segment-item" data-status="Incassata">Incassate</button>
                 <button type="button" class="segment-item" data-status="In attesa">In attesa</button>
+                <button type="button" class="segment-item" data-status="Confermata">Confermate</button>
               </div>
 
               <!-- Actions -->
               <div class="table-actions">
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-sync-orders-income">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  Sincronizza da Ordini
+                </button>
+
                 <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm" id="btn-quick-collect-all" title="Segna tutte le entrate in attesa come effettivamente incassate">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                   Incassa Tutti
@@ -365,18 +899,18 @@
 
                 <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm" id="btn-add-income">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  + Nuova Entrata
+                  Nuova Entrata
                 </button>
               </div>
             </div>
 
             <!-- Table -->
-            <div class="apple-table-wrapper desktop-only-table">
+            <div class="apple-table-wrapper">
               <table class="apple-table">
                 <thead>
                   <tr>
-                    <th title="Ordinamento automatico per data decrescente (i nuovi ordini arrivano sopra)">Data <span style="font-size: 11px; color: var(--terracotta); font-weight: 700;">↓</span></th>
-                    <th>Descrizione / Cliente</th>
+                    <th>Data</th>
+                    <th>Descrizione</th>
                     <th>Rif. Ordine</th>
                     <th>Metodo</th>
                     <th>Stato</th>
@@ -390,27 +924,23 @@
                 </tbody>
               </table>
             </div>
-            <!-- Mobile View: Touch-Friendly Cards -->
-            <div class="mobile-records-list" id="incomes-mobile-cards">
-              <!-- Injected via JavaScript on mobile -->
-            </div>
           </div>
         </section>
 
         <!-- ======================================================== -->
-        <!-- SEZIONE 2: USCITE (PASSIVO) -->
+        <!-- VIEW 3: PASSIVO (USCITE & SPESE) -->
         <!-- ======================================================== -->
         <section id="view-passivo" class="view-section">
           
-          <!-- Category Selector & Action Bar -->
+          <!-- Category Selector & Mobile Action Bar -->
           <div class="expenses-header-bar">
             <div class="expenses-category-scroll">
               <div class="segmented-control" id="expenses-category-tabs">
                 <button type="button" class="segment-item active" data-cat="all">Tutte le Spese</button>
-                <button type="button" class="segment-item" data-cat="magliette">👕 Magliette & Stock</button>
                 <button type="button" class="segment-item" data-cat="trasporto">🚚 Trasporto</button>
                 <button type="button" class="segment-item" data-cat="imballaggio">📦 Imballaggio</button>
-                <button type="button" class="segment-item" data-cat="altre">💼 Altre Spese</button>
+                <button type="button" class="segment-item" data-cat="prove">🧪 Prove & Sviluppo</button>
+                <button type="button" class="segment-item" data-cat="magliette">👕 Magliette</button>
               </div>
             </div>
 
@@ -431,26 +961,26 @@
           <div class="kpi-hero-grid" id="expenses-metrics-grid">
             <div class="glass-card kpi-card">
               <span class="kpi-label">Totale Speso Sezione</span>
-              <div class="kpi-value rose-val" id="exp-metric-total">€ 708,00</div>
-              <span class="kpi-footer" id="exp-metric-count">1 uscita registrata</span>
+              <div class="kpi-value rose-val" id="exp-metric-total">€ 0,00</div>
+              <span class="kpi-footer" id="exp-metric-count">0 registrazioni</span>
             </div>
 
             <div class="glass-card kpi-card">
-              <span class="kpi-label" id="exp-metric-kpi2-label">Magliette & Stock</span>
-              <div class="kpi-value" id="exp-metric-kpi2-val">€ 708,00</div>
-              <span class="kpi-footer" id="exp-metric-kpi2-sub">Costo capi stock</span>
+              <span class="kpi-label" id="exp-metric-kpi2-label">Trasporto Totale</span>
+              <div class="kpi-value" id="exp-metric-kpi2-val">€ 0,00</div>
+              <span class="kpi-footer" id="exp-metric-kpi2-sub">Spedizioni corrieri</span>
             </div>
 
             <div class="glass-card kpi-card">
-              <span class="kpi-label" id="exp-metric-kpi3-label">Trasporto Totale</span>
+              <span class="kpi-label" id="exp-metric-kpi3-label">Imballaggio Totale</span>
               <div class="kpi-value" id="exp-metric-kpi3-val">€ 0,00</div>
-              <span class="kpi-footer" id="exp-metric-kpi3-sub">Spedizioni corrieri</span>
+              <span class="kpi-footer" id="exp-metric-kpi3-sub">Scatole & packaging</span>
             </div>
 
             <div class="glass-card kpi-card">
-              <span class="kpi-label" id="exp-metric-kpi4-label">Imballaggio & Altro</span>
+              <span class="kpi-label" id="exp-metric-kpi4-label">Magliette & Prove</span>
               <div class="kpi-value" id="exp-metric-kpi4-val">€ 0,00</div>
-              <span class="kpi-footer" id="exp-metric-kpi4-sub">Packaging e materiali</span>
+              <span class="kpi-footer" id="exp-metric-kpi4-sub">Acquisto stock & campioni</span>
             </div>
           </div>
 
@@ -474,7 +1004,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="expenses-search" placeholder="Cerca fornitore, corriere, descrizione...">
               </div>
-              <div style="font-size: 12px; color: var(--text-muted);" id="expenses-table-counter">Mostrando 1 uscita</div>
+              <div style="font-size: 12px; color: var(--text-muted);" id="expenses-table-counter">Mostrando 0 uscite</div>
             </div>
 
             <!-- Desktop View: Full Table -->
@@ -497,10 +1027,419 @@
               </table>
             </div>
 
-            <!-- Mobile View: Touch-Friendly Cards -->
+            <!-- Mobile View: Clean Touch-Friendly Cards -->
             <div class="mobile-records-list" id="expenses-mobile-cards">
               <!-- Injected via JavaScript on mobile -->
             </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 4: INSIGHTS & ANALYTICS -->
+        <!-- ======================================================== -->
+        <section id="view-insights" class="view-section">
+
+          <!-- Insights Filter Header -->
+          <div class="glass-card" style="padding: 16px 22px;">
+            <div class="insights-top-filters">
+              <div class="insights-filter-group">
+                <span class="filter-label">Filtro Colore:</span>
+                <div class="segmented-control" id="insights-color-filter">
+                  <button type="button" class="segment-item active" data-color="all">Tutti i Colori</button>
+                  <button type="button" class="segment-item" data-color="navy">🔵 Blu navy</button>
+                  <button type="button" class="segment-item" data-color="white">⚪ Bianca</button>
+                </div>
+              </div>
+
+              <div class="insights-filter-group">
+                <span class="filter-label">Filtro Taglia:</span>
+                <div class="segmented-control" id="insights-size-filter">
+                  <button type="button" class="segment-item active" data-size="all">Tutte</button>
+                  <button type="button" class="segment-item" data-size="S">S</button>
+                  <button type="button" class="segment-item" data-size="M">M</button>
+                  <button type="button" class="segment-item" data-size="L">L</button>
+                  <button type="button" class="segment-item" data-size="XL">XL</button>
+                  <button type="button" class="segment-item" data-size="XXL">XXL</button>
+                  <button type="button" class="segment-item" data-size="3XL">3XL</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- A. STATISTICHE PER COLORE -->
+          <div class="glass-card chart-card">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche per Colore</h3>
+                <span class="chart-subtitle">Preferenze cromatiche: Blu navy vs Bianca</span>
+              </div>
+            </div>
+            
+            <div class="color-hero-grid">
+              <div class="chart-container" style="height: 240px;">
+                <canvas id="chart-insights-color"></canvas>
+              </div>
+
+              <div class="color-breakdown-card">
+                <!-- Navy item -->
+                <div class="color-metric-item">
+                  <div class="color-swatch-box color-swatch-navy">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+                  </div>
+                  <div class="color-metric-info">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                      <span class="color-metric-name">Blu navy Tavolara</span>
+                      <span class="color-metric-count" id="ins-navy-count">0 capi</span>
+                    </div>
+                    <div class="color-metric-bar">
+                      <div class="color-metric-bar-fill" id="ins-navy-bar" style="width: 0%; background: #003760;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                      <span>Percentuale vendite</span>
+                      <strong id="ins-navy-pct">0.0%</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- White item -->
+                <div class="color-metric-item">
+                  <div class="color-swatch-box color-swatch-white">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+                  </div>
+                  <div class="color-metric-info">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                      <span class="color-metric-name">Bianca Tavolara</span>
+                      <span class="color-metric-count" id="ins-white-count">0 capi</span>
+                    </div>
+                    <div class="color-metric-bar">
+                      <div class="color-metric-bar-fill" id="ins-white-bar" style="width: 0%; background: #94a3b8;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+                      <span>Percentuale vendite</span>
+                      <strong id="ins-white-pct">0.0%</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- B. STATISTICHE PER TAGLIA & TABELLA INCROCIATA -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche per Taglia (S, M, L, XL, XXL, 3XL)</h3>
+                <span class="chart-subtitle">Volumi, percentuali e matrice incrociata Taglia × Colore</span>
+              </div>
+              <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-matrix-csv">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Esporta Matrice CSV
+              </button>
+            </div>
+
+            <!-- Best / Least Seller Pills -->
+            <div class="size-highlight-grid">
+              <div class="glass-card size-highlight-card">
+                <div class="size-highlight-badge best">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+                </div>
+                <div>
+                  <span style="font-size: 11.5px; font-weight: 600; color: var(--brand-ice); text-transform: uppercase;">Taglia Più Venduta</span>
+                  <div style="font-size: 20px; font-weight: 700; color: var(--brand-navy);" id="ins-best-seller">—</div>
+                  <span style="font-size: 12px; color: var(--text-muted);" id="ins-best-seller-sub">0 magliette</span>
+                </div>
+              </div>
+
+              <div class="glass-card size-highlight-card">
+                <div class="size-highlight-badge least">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                  <span style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Taglia Meno Venduta</span>
+                  <div style="font-size: 20px; font-weight: 700; color: var(--text-main);" id="ins-least-seller">—</div>
+                  <span style="font-size: 12px; color: var(--text-muted);" id="ins-least-seller-sub">0 magliette</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Size Bar Chart -->
+            <div class="chart-container" style="height: 220px; margin-bottom: 24px;">
+              <canvas id="chart-insights-size"></canvas>
+            </div>
+
+            <!-- Tabella Incrociata Richiesta Esplicitamente -->
+            <div style="margin-top: 14px; overflow-x: auto;">
+              <h4 style="font-size: 13.5px; font-weight: 700; color: var(--brand-navy); margin-bottom: 12px;">
+                Matrice Incrociata Taglia × Colore
+              </h4>
+              <table class="cross-matrix-table" id="cross-matrix-table">
+                <thead>
+                  <tr>
+                    <th>Taglia</th>
+                    <th>Blu navy</th>
+                    <th>Bianca</th>
+                    <th>Totale Venduto</th>
+                    <th>Percentuale</th>
+                  </tr>
+                </thead>
+                <tbody id="cross-matrix-tbody">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- C. STATISTICHE COMMERCIALI -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche Commerciali</h3>
+                <span class="chart-subtitle">Indicatori di vendita, clientela e valore medio scontrino</span>
+              </div>
+            </div>
+
+            <div class="kpi-hero-grid" style="margin-bottom: 20px;">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Ordini Totali</span>
+                <div class="kpi-value" id="ins-comm-orders">0</div>
+                <span class="kpi-footer">Complessivi registrati</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Clienti Unici</span>
+                <div class="kpi-value" id="ins-comm-customers">0</div>
+                <span class="kpi-footer">Indirizzi email univoci</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Magliette Complessive</span>
+                <div class="kpi-value" id="ins-comm-shirts">0</div>
+                <span class="kpi-footer">Capi totali spediti / consegnati</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Quantità Media / Ordine</span>
+                <div class="kpi-value" id="ins-comm-avg-qty">0,00</div>
+                <span class="kpi-footer">Capi per singolo acquisto</span>
+              </div>
+            </div>
+
+            <div class="kpi-hero-grid">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Valore Medio Ordine (AOV)</span>
+                <div class="kpi-value" id="ins-comm-aov">€ 0,00</div>
+                <span class="kpi-footer">Scontrino medio</span>
+              </div>
+
+              <div class="glass-card kpi-card" style="grid-column: span 3;">
+                <span class="kpi-label">Fatturato Totale Lordo</span>
+                <div class="kpi-value emerald-val" id="ins-comm-revenue">€ 0,00</div>
+                <span class="kpi-footer">Valore economico ordini effettuati</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- D. STATISTICHE ECONOMICHE -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Statistiche Economiche & Redditività</h3>
+                <span class="chart-subtitle">Costi di produzione, logistica, margine lordo e utile stimato</span>
+              </div>
+            </div>
+
+            <div class="economic-stats-grid">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Costo Totale Produzione</span>
+                <div class="kpi-value rose-val" id="ins-econ-prod-cost">€ 0,00</div>
+                <span class="kpi-footer">T-shirt + prove campioni</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Spese di Trasporto</span>
+                <div class="kpi-value" id="ins-econ-trans-cost">€ 0,00</div>
+                <span class="kpi-footer">Spedizioni corrieri</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Spese di Imballaggio</span>
+                <div class="kpi-value" id="ins-econ-pack-cost">€ 0,00</div>
+                <span class="kpi-footer">Buste, scatole ed etichette</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Spese per Prove & Test</span>
+                <div class="kpi-value" id="ins-econ-proof-cost">€ 0,00</div>
+                <span class="kpi-footer">Stampe e prototipi</span>
+              </div>
+            </div>
+
+            <div class="economic-stats-grid" style="margin-top: 18px;">
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Costo Medio / Maglietta</span>
+                <div class="kpi-value" id="ins-econ-avg-cost">€ 0,00</div>
+                <span class="kpi-footer">Costo unitario stimato</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Ricavo Medio / Maglietta</span>
+                <div class="kpi-value" id="ins-econ-avg-rev">€ 0,00</div>
+                <span class="kpi-footer">Prezzo medio netto incassato</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Margine Lordo</span>
+                <div class="kpi-value emerald-val" id="ins-econ-gross-margin">€ 0,00</div>
+                <span class="kpi-footer" id="ins-econ-gross-margin-pct">0.0% sul fatturato</span>
+              </div>
+
+              <div class="glass-card kpi-card">
+                <span class="kpi-label">Utile Stimato</span>
+                <div class="kpi-value" id="ins-econ-net-profit">€ 0,00</div>
+                <span class="kpi-footer" id="ins-econ-net-profit-pct">0.0% netto finale</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 5: ORDINI CLIENTI (OPERATIVITÀ) -->
+        <!-- ======================================================== -->
+        <section id="view-orders" class="view-section">
+          <div class="glass-card table-card">
+            <div class="table-toolbar">
+              <div class="table-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="orders-search" placeholder="Cerca ordine, cliente, email...">
+              </div>
+
+              <div class="segmented-control" id="orders-status-filter">
+                <button type="button" class="segment-item active" data-status="all">Tutti</button>
+                <button type="button" class="segment-item" data-status="Ordine ricevuto">Ricevuti</button>
+                <button type="button" class="segment-item" data-status="Ordine confermato">Confermati</button>
+                <button type="button" class="segment-item" data-status="Ordine da pagare">Da pagare</button>
+                <button type="button" class="segment-item" data-status="Ordine pagato">Pagati</button>
+                <button type="button" class="segment-item" data-status="Spedito / Consegnato">Spediti</button>
+              </div>
+
+              <div class="table-actions">
+                <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-export-orders-csv">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Esporta Ordini CSV
+                </button>
+              </div>
+            </div>
+
+            <div class="apple-table-wrapper">
+              <table class="apple-table">
+                <thead>
+                  <tr>
+                    <th>Ordine #</th>
+                    <th>Data</th>
+                    <th>Cliente</th>
+                    <th>Articolo / Taglia</th>
+                    <th>Consegna</th>
+                    <th style="text-align: right;">Totale</th>
+                    <th>Stato Ordine</th>
+                    <th style="text-align: center;">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody id="orders-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- VIEW 6: CONFIGURAZIONE & STOCK -->
+        <!-- ======================================================== -->
+        <section id="view-config" class="view-section">
+          <div class="charts-grid-2x2">
+            <!-- Prezzi e Tariffe -->
+            <div class="glass-card" style="padding: 24px;">
+              <h3 class="chart-title" style="margin-bottom: 16px;">Prezzi & Tariffe Spedizione</h3>
+              <form id="form-config-prices" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-field">
+                  <label class="form-label" for="cfg-shirt-price">Prezzo T-shirt Ufficiale (€)</label>
+                  <input type="number" step="0.50" id="cfg-shirt-price" class="apple-input" placeholder="30.00" required>
+                </div>
+                <div class="form-grid-2">
+                  <div class="form-field">
+                    <label class="form-label" for="cfg-shipping-locker">Spedizione Locker (€)</label>
+                    <input type="number" step="0.50" id="cfg-shipping-locker" class="apple-input" placeholder="4.50" required>
+                  </div>
+                  <div class="form-field">
+                    <label class="form-label" for="cfg-shipping-home">Spedizione a Domicilio (€)</label>
+                    <input type="number" step="0.50" id="cfg-shipping-home" class="apple-input" placeholder="6.00" required>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="cfg-shipping-hand">Tariffa Consegna a Mano (€)</label>
+                  <input type="number" step="0.50" id="cfg-shipping-hand" class="apple-input" placeholder="0.00" required>
+                </div>
+                <button type="submit" class="apple-btn apple-btn-primary" style="margin-top: 8px;">Salva Prezzi</button>
+              </form>
+            </div>
+
+            <!-- Coordinate Bancarie -->
+            <div class="glass-card" style="padding: 24px;">
+              <h3 class="chart-title" style="margin-bottom: 16px;">Coordinate Bancarie Bonifico</h3>
+              <form id="form-config-bank" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="form-field">
+                  <label class="form-label" for="cfg-bank-holder">Intestatario del Conto</label>
+                  <input type="text" id="cfg-bank-holder" class="apple-input" placeholder="Tavolara S.r.l.">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="cfg-bank-iban">Codice IBAN</label>
+                  <input type="text" id="cfg-bank-iban" class="apple-input" placeholder="IT00X0000000000000000000000">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="cfg-bank-name">Istituto di Credito (Banca)</label>
+                  <input type="text" id="cfg-bank-name" class="apple-input" placeholder="Intesa Sanpaolo / Banco di Sardegna">
+                </div>
+                <button type="submit" class="apple-btn apple-btn-primary" style="margin-top: 8px;">Salva Dati Bancari</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Disponibilità Taglie Stock -->
+          <div class="glass-card" style="padding: 24px;">
+            <div class="chart-header">
+              <div class="chart-title-group">
+                <h3 class="chart-title">Disponibilità Taglie & Magazzino</h3>
+                <span class="chart-subtitle">Attiva o disattiva varianti per il modulo ordini clienti</span>
+              </div>
+            </div>
+            <div class="apple-table-wrapper">
+              <table class="apple-table">
+                <thead>
+                  <tr>
+                    <th>Colore</th>
+                    <th>Taglia</th>
+                    <th>Stato Disponibilità</th>
+                    <th>Stock Indicativo</th>
+                    <th style="text-align: right;">Azione Rapida</th>
+                  </tr>
+                </thead>
+                <tbody id="variants-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sicurezza e Cambio Password -->
+          <div class="glass-card" style="padding: 24px; max-width: 500px;">
+            <h3 class="chart-title" style="margin-bottom: 12px;">Modifica Password Amministratore</h3>
+            <form id="form-change-pwd" style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="form-field">
+                <label class="form-label" for="new-admin-pwd">Nuova Password</label>
+                <input type="password" id="new-admin-pwd" class="apple-input" placeholder="Minimo 6 caratteri" required>
+              </div>
+              <button type="submit" class="apple-btn apple-btn-rose">Aggiorna Password</button>
+            </form>
           </div>
         </section>
 
@@ -509,27 +1448,28 @@
   </div>
 
   <!-- ============================================================== -->
-  <!-- MODAL: ENTRATA -->
+  <!-- 3. MODALS -->
   <!-- ============================================================== -->
+
+  <!-- MODAL: ADD / EDIT ENTRATA (ATTIVO) -->
   <div id="modal-income" class="modal-overlay">
     <div class="modal-sheet">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-income-title">Nuova Entrata Economica</h3>
         <button type="button" class="modal-close-btn" data-close-modal="modal-income">✕</button>
       </div>
-
       <form id="form-income">
         <input type="hidden" id="income-id">
         <div class="modal-body">
           <div class="form-field">
-            <label class="form-label" for="inc-desc">Descrizione / Cliente <span class="req">*</span></label>
-            <input type="text" id="inc-desc" class="apple-input" placeholder="es. Ordine #14 — Greta Castro" required>
+            <label class="form-label" for="inc-desc">Descrizione Entrata <span class="req">*</span></label>
+            <input type="text" id="inc-desc" class="apple-input" placeholder="es. Vendita stock lotti preordine" required>
           </div>
 
           <div class="form-grid-2">
             <div class="form-field">
-              <label class="form-label" for="inc-amount">Importo (€) <span class="req">*</span></label>
-              <input type="number" step="0.01" min="0" id="inc-amount" class="apple-input" placeholder="0.00" required>
+              <label class="form-label" for="inc-amount">Importo Totale (€) <span class="req">*</span></label>
+              <input type="number" step="0.01" id="inc-amount" class="apple-input" placeholder="0.00" required>
             </div>
             <div class="form-field">
               <label class="form-label" for="inc-date">Data Registrazione <span class="req">*</span></label>
@@ -542,96 +1482,73 @@
               <label class="form-label" for="inc-method">Metodo di Pagamento</label>
               <select id="inc-method" class="apple-input">
                 <option value="Bonifico bancario">Bonifico bancario</option>
-                <option value="Contanti">Contanti</option>
-                <option value="POS / Carta">POS / Carta</option>
-                <option value="Altro">Altro</option>
+                <option value="Carta di credito / Stripe">Carta di credito / Stripe</option>
+                <option value="PayPal">PayPal</option>
+                <option value="Contanti / A mano">Contanti / A mano</option>
+                <option value="Altro">Altro metodo</option>
               </select>
             </div>
             <div class="form-field">
-              <label class="form-label" for="inc-status">Stato Pagamento</label>
+              <label class="form-label" for="inc-status">Stato Incasso</label>
               <select id="inc-status" class="apple-input">
-                <option value="Incassata">● Incassata (Effettivo)</option>
-                <option value="In attesa">● In attesa</option>
+                <option value="Incassata">Incassata (Effettivo)</option>
+                <option value="Confermata">Confermata</option>
+                <option value="In attesa">In attesa di accredito</option>
               </select>
             </div>
           </div>
 
           <div class="form-field">
-            <label class="form-label" for="inc-ref">Riferimento Ordine (opzionale)</label>
-            <input type="text" id="inc-ref" class="apple-input" placeholder="es. EXCEL-014">
+            <label class="form-label" for="inc-ref">Numero o Riferimento Ordine (opzionale)</label>
+            <input type="text" id="inc-ref" class="apple-input" placeholder="es. #TVL-26-1024 o Mario Rossi">
           </div>
 
           <div class="form-field">
             <label class="form-label" for="inc-notes">Note Aggiuntive</label>
-            <textarea id="inc-notes" class="apple-input" rows="2" placeholder="Note contabili o riferimenti banca..."></textarea>
+            <textarea id="inc-notes" class="apple-input" rows="2" placeholder="Dettagli aggiuntivi per la contabilità..."></textarea>
           </div>
         </div>
-
         <div class="modal-footer">
           <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-income">Annulla</button>
-          <button type="submit" class="apple-btn apple-btn-emerald" id="btn-save-income">Salva Entrata</button>
+          <button type="submit" class="apple-btn apple-btn-emerald">Salva Entrata</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ============================================================== -->
-  <!-- MODAL: SPESA / USCITA (SENZA PROVE!) -->
-  <!-- ============================================================== -->
+  <!-- MODAL: ADD / EDIT SPESA (PASSIVO - 4 CATEGORIE) -->
   <div id="modal-expense" class="modal-overlay">
     <div class="modal-sheet">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-expense-title">Registra Nuova Spesa</h3>
         <button type="button" class="modal-close-btn" data-close-modal="modal-expense">✕</button>
       </div>
-
       <form id="form-expense">
         <input type="hidden" id="expense-id">
         <div class="modal-body">
           
+          <!-- Category selector inside modal -->
           <div class="form-field">
             <label class="form-label" for="exp-cat">Categoria Spesa <span class="req">*</span></label>
             <select id="exp-cat" class="apple-input" required>
-              <option value="magliette">👕 Spese Magliette & Stock</option>
-              <option value="trasporto">🚚 Spese di Trasporto & Spedizioni</option>
-              <option value="imballaggio">📦 Spese di Imballaggio & Packaging</option>
-              <option value="altre">💼 Altre Spese Operative</option>
+              <option value="trasporto">🚚 Spese di Trasporto</option>
+              <option value="imballaggio">📦 Spese di Imballaggio</option>
+              <option value="prove">🧪 Spese Prove & Sviluppo</option>
+              <option value="magliette">👕 Spese Magliette</option>
             </select>
           </div>
 
           <div class="form-field">
             <label class="form-label" for="exp-desc">Descrizione Spesa <span class="req">*</span></label>
-            <input type="text" id="exp-desc" class="apple-input" placeholder="es. Spedizione lotti GLS" required>
-          </div>
-
-          <!-- Specific Fields: Magliette -->
-          <div id="exp-fields-magliette" class="category-field-group">
-            <div class="form-field">
-              <label class="form-label" for="exp-shirt-supplier">Fornitore / Manifattura</label>
-              <input type="text" id="exp-shirt-supplier" class="apple-input" placeholder="es. Manifattura Tessile Tavolara">
-            </div>
-            <div class="form-grid-2" style="margin-top: 10px;">
-              <div class="form-field">
-                <label class="form-label" for="exp-shirt-qty">Quantità Capi</label>
-                <input type="number" id="exp-shirt-qty" class="apple-input" min="1" placeholder="es. 59">
-              </div>
-              <div class="form-field">
-                <label class="form-label" for="exp-shirt-unit">Costo Unitario (€)</label>
-                <input type="number" step="0.01" id="exp-shirt-unit" class="apple-input" placeholder="es. 12.00">
-              </div>
-            </div>
-            <div class="form-field" style="margin-top: 10px;">
-              <label class="form-label" for="exp-shirt-extra">Costi Extra (€)</label>
-              <input type="number" step="0.01" id="exp-shirt-extra" class="apple-input" value="0.00">
-            </div>
+            <input type="text" id="exp-desc" class="apple-input" placeholder="es. Spedizione pacchi Olbia" required>
           </div>
 
           <!-- Specific Fields: Trasporto -->
-          <div id="exp-fields-trasporto" class="category-field-group" style="display: none;">
+          <div id="exp-fields-trasporto" class="category-field-group">
             <div class="form-grid-2">
               <div class="form-field">
                 <label class="form-label" for="exp-trans-carrier">Corriere / Servizio</label>
-                <input type="text" id="exp-trans-carrier" class="apple-input" placeholder="es. GLS, BRT, DHL, Poste">
+                <input type="text" id="exp-trans-carrier" class="apple-input" placeholder="es. GLS, Poste Italiane, BRT, DHL">
               </div>
               <div class="form-field">
                 <label class="form-label" for="exp-trans-count">Numero Spedizioni</label>
@@ -656,13 +1573,14 @@
                   <option value="Scatole">Scatole automontanti</option>
                   <option value="Buste">Buste spedizione</option>
                   <option value="Etichette">Etichette adesive</option>
-                  <option value="Nastro e materiali">Nastro e materiali protettivi</option>
+                  <option value="Packaging personalizzato">Packaging personalizzato</option>
+                  <option value="Nastro e materiali">Nastro e altri materiali</option>
                   <option value="Altro">Altro materiale</option>
                 </select>
               </div>
               <div class="form-field">
                 <label class="form-label" for="exp-pack-qty">Quantità Acquistata</label>
-                <input type="number" id="exp-pack-qty" class="apple-input" min="1" placeholder="es. 100">
+                <input type="number" id="exp-pack-qty" class="apple-input" min="1" placeholder="es. 250">
               </div>
             </div>
             <div class="form-field" style="margin-top: 10px;">
@@ -671,92 +1589,212 @@
             </div>
           </div>
 
-          <!-- Specific Fields: Altre Spese -->
-          <div id="exp-fields-altre" class="category-field-group" style="display: none;">
+          <!-- Specific Fields: Prove -->
+          <div id="exp-fields-prove" class="category-field-group" style="display: none;">
             <div class="form-field">
-              <label class="form-label" for="exp-altre-supplier">Beneficiario / Dettaglio Spesa</label>
-              <input type="text" id="exp-altre-supplier" class="apple-input" placeholder="es. Servizio dominio, cancelleria, packaging speciale...">
+              <label class="form-label" for="exp-proof-type">Fase / Tipologia Prova</label>
+              <select id="exp-proof-type" class="apple-input">
+                <option value="Campioni e prototipi">Campioni e prototipi</option>
+                <option value="Campionature tessuto">Campionature tessuto</option>
+                <option value="Test di stampa serigrafica">Test di stampa serigrafica</option>
+                <option value="Modifiche e prove produzione">Modifiche e prove produzione</option>
+                <option value="Sviluppo grafica ed etichette">Sviluppo grafica ed etichette</option>
+                <option value="Altra spesa sviluppo">Altra spesa sviluppo</option>
+              </select>
             </div>
           </div>
 
+          <!-- Specific Fields: Magliette -->
+          <div id="exp-fields-magliette" class="category-field-group" style="display: none;">
+            <div class="form-field">
+              <label class="form-label" for="exp-shirt-supplier">Fornitore / Manifattura</label>
+              <input type="text" id="exp-shirt-supplier" class="apple-input" placeholder="es. Tessitura Italiana Srl">
+            </div>
+            <div class="form-grid-2" style="margin-top: 10px;">
+              <div class="form-field">
+                <label class="form-label" for="exp-shirt-qty">Quantità Capi Acquistati</label>
+                <input type="number" id="exp-shirt-qty" class="apple-input" min="1" placeholder="es. 100">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="exp-shirt-unit">Costo Unitario Maglietta (€)</label>
+                <input type="number" step="0.01" id="exp-shirt-unit" class="apple-input" placeholder="es. 8.50">
+              </div>
+            </div>
+            <div class="form-field" style="margin-top: 10px;">
+              <label class="form-label" for="exp-shirt-extra">Costi Aggiuntivi Produzione (Stampe, serigrafia, ricami €)</label>
+              <input type="number" step="0.01" id="exp-shirt-extra" class="apple-input" placeholder="es. 150.00" value="0.00">
+            </div>
+          </div>
+
+          <!-- Total Amount and Date -->
           <div class="form-grid-2">
             <div class="form-field">
-              <label class="form-label" for="exp-amount">Importo Totale (€) <span class="req">*</span></label>
-              <input type="number" step="0.01" min="0" id="exp-amount" class="apple-input" placeholder="0.00" required>
+              <label class="form-label" for="exp-amount">Importo Totale Spesa (€) <span class="req">*</span></label>
+              <input type="number" step="0.01" id="exp-amount" class="apple-input" placeholder="0.00" required>
+              <span class="form-hint" id="exp-amount-calc-hint">Calcolato in automatico se inserisci quantità e prezzo</span>
             </div>
             <div class="form-field">
-              <label class="form-label" for="exp-date">Data Spesa <span class="req">*</span></label>
+              <label class="form-label" for="exp-date">Data della Spesa <span class="req">*</span></label>
               <input type="date" id="exp-date" class="apple-input" required>
             </div>
           </div>
 
           <div class="form-field">
-            <label class="form-label" for="exp-notes">Note Contabili</label>
-            <textarea id="exp-notes" class="apple-input" rows="2" placeholder="Fattura, scontrino, note fornitore..."></textarea>
+            <label class="form-label" for="exp-notes">Note Aggiuntive</label>
+            <textarea id="exp-notes" class="apple-input" rows="2" placeholder="Fattura num, note corriere o dettagli fornitore..."></textarea>
           </div>
-        </div>
 
+        </div>
         <div class="modal-footer">
           <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-expense">Annulla</button>
-          <button type="submit" class="apple-btn apple-btn-rose" id="btn-save-expense">Salva Spesa</button>
+          <button type="submit" class="apple-btn apple-btn-rose">Salva Spesa</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ============================================================== -->
-  <!-- MODAL: STATO SINCRONIZZAZIONE EXCEL & CLOUD -->
-  <!-- ============================================================== -->
+  <!-- MODAL: SYNC ORDERS TO INCOME -->
+  <div id="modal-sync-orders" class="modal-overlay">
+    <div class="modal-sheet" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Sincronizza Ordini con l'Attivo</h3>
+        <button type="button" class="modal-close-btn" data-close-modal="modal-sync-orders">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; padding: 10px 14px; background: rgba(5, 150, 105, 0.08); border: 1px solid rgba(5, 150, 105, 0.2); border-radius: var(--radius-sm);">
+          <div>
+            <strong style="font-size: 13px; color: var(--text-main);">Sincronizzazione Rapida Multipla</strong>
+            <div style="font-size: 11.5px; color: var(--text-muted);" id="sync-modal-count-info">Caricamento ordini...</div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm" id="btn-sync-all-incassati" title="Registra tutti gli ordini come effettivamente incassati nell'Attivo">
+              ⚡ Segna Tutti Incassati
+            </button>
+            <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm" id="btn-sync-all-confermati" title="Registra tutti gli ordini come confermati">
+              ✓ Segna Tutti Confermati
+            </button>
+          </div>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px;">
+          Seleziona lo stato dei movimenti da registrare nell'Attivo:
+        </p>
+        <div class="apple-table-wrapper" style="max-height: 380px;">
+          <table class="apple-table">
+            <thead>
+              <tr>
+                <th>Ordine</th>
+                <th>Cliente</th>
+                <th>Importo</th>
+                <th>Stato Ordine</th>
+                <th>Stato Attivo</th>
+                <th style="text-align: right;">Azione</th>
+              </tr>
+            </thead>
+            <tbody id="sync-orders-tbody">
+              <!-- Injected via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-sync-orders">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXCEL LIVE CONNECTION & SYNC -->
   <div id="modal-excel-sync" class="modal-overlay">
     <div class="modal-sheet" style="max-width: 640px;">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--olive-bg); display: flex; align-items: center; justify-content: center; color: var(--olive);">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(5, 150, 105, 0.12); color: var(--emerald); display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           </div>
-          <h3 class="modal-title">Sincronizzazione Excel & Cloud</h3>
+          <div>
+            <h3 class="modal-title">Collegamento File Excel</h3>
+            <span style="font-size: 11.5px; color: var(--text-muted);">Sincronizzazione in tempo reale con il foglio ordini</span>
+          </div>
         </div>
         <button type="button" class="modal-close-btn" data-close-modal="modal-excel-sync">✕</button>
       </div>
 
       <div class="modal-body" style="gap: 18px;">
-        <div class="glass-card" style="padding: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="font-size: 13.5px; color: var(--text-main);" id="excel-modal-status-text">File Excel Connesso & Sincronizzato</strong>
-            <span class="status-pill incassata" id="excel-modal-orders-pill">59 Ordini</span>
+        <!-- Status Box -->
+        <div class="glass-card" style="padding: 16px 20px; background: var(--olive-bg); border-color: var(--olive-border);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--olive);"></span>
+              <strong style="font-size: 13.5px; color: var(--text-main);" id="excel-modal-status-text">File Excel Collegato & Sincronizzato</strong>
+            </div>
+            <span class="status-pill incassata" id="excel-modal-orders-pill">58 Ordini</span>
           </div>
           <div style="font-size: 12px; color: var(--text-secondary); word-break: break-all;" id="excel-modal-filepath">
-            data/tavolara_ordini_live.xlsx
+            Percorso: <code>tavolara_ordini_live.xlsx</code>
           </div>
           <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;" id="excel-modal-last-synced">
-            Database SQLite e Cloud Supabase allineati in tempo reale
+            Ultima sincronizzazione: —
           </div>
         </div>
 
-        <div class="form-grid-3">
-          <div class="glass-card" style="padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Totale Incassi</div>
-            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--olive);" id="excel-modal-rev">€ 1.475,00</div>
+        <!-- Metric Summary from Excel -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+          <div class="glass-card" style="padding: 12px 14px;">
+            <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Incasso Previsto</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--olive); margin-top: 2px;" id="excel-modal-rev">€ 1.420,00</div>
           </div>
-          <div class="glass-card" style="padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Totale Spese</div>
-            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--brick);" id="excel-modal-costs">€ 708,00</div>
+          <div class="glass-card" style="padding: 12px 14px;">
+            <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Costi Magliette</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--brick); margin-top: 2px;" id="excel-modal-costs">€ 696,00</div>
           </div>
-          <div class="glass-card" style="padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Utile Netto</div>
-            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--text-main);" id="excel-modal-profit">€ 767,00</div>
+          <div class="glass-card" style="padding: 12px 14px;">
+            <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;">Utile Calcolato</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--text-main); margin-top: 2px;" id="excel-modal-profit">€ 724,00</div>
           </div>
         </div>
 
-        <div class="form-grid-2">
-          <div class="glass-card" style="padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Quota Pala (50%)</div>
-            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--text-main);" id="excel-modal-pala">€ 383,50</div>
+        <!-- Soci Split Box -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="glass-card" style="padding: 14px 16px; background: var(--bg-card-subtle); border-color: var(--border-main);">
+            <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;">Quota Utile Socio Pala</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--text-main); margin-top: 2px;" id="excel-modal-pala">€ 362,00</div>
           </div>
-          <div class="glass-card" style="padding: 12px; text-align: center;">
-            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Quota Leo (50%)</div>
-            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 600; color: var(--text-main);" id="excel-modal-bizz">€ 383,50</div>
+          <div class="glass-card" style="padding: 14px 16px; background: var(--terracotta-bg); border-color: var(--terracotta-border);">
+            <span style="font-size: 11px; font-weight: 600; color: var(--terracotta); text-transform: uppercase; letter-spacing: 0.04em;">Quota Utile Socio Bizzotto</span>
+            <div style="font-family: var(--font-serif); font-size: 20px; font-weight: 500; color: var(--terracotta-dark); margin-top: 2px;" id="excel-modal-bizz">€ 362,00</div>
           </div>
+        </div>
+
+        <!-- Google Drive Direct Link Section -->
+        <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-main); border-radius: var(--radius-sm); padding: 14px 16px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--brand-navy);"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <strong style="font-size: 13px; color: var(--text-main);">Collega Link Google Drive / Google Fogli</strong>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 9px;">
+            Incolla il link di condivisione del foglio (impostato su <em>"Chiunque abbia il link può visualizzare"</em>):
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="url" id="google-drive-url-input" class="apple-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit" style="flex: 1; font-size: 12px; padding: 7px 11px;">
+            <button type="button" class="apple-btn apple-btn-primary" id="btn-sync-google-drive" style="white-space: nowrap; padding: 0 14px; font-size: 12px;">
+              Sincronizza
+            </button>
+          </div>
+        </div>
+
+        <!-- Drag & Drop Upload Zone -->
+        <div style="border: 1.5px dashed var(--border-dark); border-radius: var(--radius-sm); padding: 22px; text-align: center; background: var(--bg-card-subtle); cursor: pointer;" id="excel-drop-zone">
+          <input type="file" id="excel-file-input" accept=".xlsx" style="display: none;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color: var(--terracotta); margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">Oppure trascina qui il file Excel o clicca per aggiornarlo</div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Accetta file <code>.xlsx</code> (es. <code>tavolr ordini novembredicembre2026.xlsx</code>)</div>
+        </div>
+
+        <!-- Continuous Connection Info Box -->
+        <div style="padding: 14px 16px; border-radius: var(--radius-sm); background: var(--bg-card-subtle); border: 1px solid var(--border-main); font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+          <strong style="color: var(--text-main); display: block; margin-bottom: 4px;">💡 Sincronizzazione Bidirezionale Attiva (Two-Way Sync):</strong>
+          • <strong>Da Excel alla Dashboard:</strong> Quando modificate e salvate il file Excel (anche su Google Drive o iCloud), la Dashboard rileva le modifiche e si aggiorna automaticamente.<br>
+          • <strong>Dalla Dashboard a Excel:</strong> Quando verificate un pagamento, cambiate uno stato o arriva un nuovo ordine dal sito, il sistema scrive direttamente nel foglio Excel (colonna Pagamento ricevuto, dati cliente, taglia e totali).<br>
+          • <strong>Google Drive:</strong> Se usate Google Drive sul Mac (o cartella sincronizzata), ogni salvataggio del gestionale viene sincronizzato in cloud in pochi secondi per tutti i soci.
         </div>
       </div>
 
@@ -767,8 +1805,11 @@
         </button>
         <div style="display: flex; gap: 8px; align-items: center;">
           <button type="button" class="apple-btn apple-btn-secondary" data-close-modal="modal-excel-sync">Chiudi</button>
-          <button type="button" class="apple-btn apple-btn-primary" id="btn-trigger-excel-sync" title="Forza verifica e allineamento dati">
-            ⚡ Forza Sincronizzazione
+          <button type="button" class="apple-btn apple-btn-secondary" id="btn-trigger-excel-sync" title="Importa eventuali modifiche da Excel verso la Dashboard">
+            📥 Importa da Excel
+          </button>
+          <button type="button" class="apple-btn apple-btn-primary" id="btn-trigger-excel-write" title="Salva le modifiche della Dashboard nel foglio Excel">
+            📤 Allinea su Excel
           </button>
         </div>
       </div>
@@ -778,7 +1819,15 @@
   <!-- MOBILE BACKDROP & BOTTOM NAVIGATION -->
   <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
   <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
-    <button type="button" class="mobile-nav-btn active" data-view="attivo">
+    <button type="button" class="mobile-nav-btn active" data-view="overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Overview</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-view="soci">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Utili Soci</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-view="attivo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
       <span>Entrate</span>
     </button>
@@ -814,8 +1863,8 @@
 
   <!-- Supabase JS Client Integration -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/js/supabaseClient.js?v=4.1"></script>
+  <script src="/js/supabaseClient.js?v=3.8"></script>
   <!-- App Logic -->
-  <script src="/js/admin.js?v=5.0"></script>
+  <script src="/js/admin.js?v=6.0"></script>
 </body>
 </html>
