@@ -18,8 +18,8 @@ def clear_test_data():
         conn = sqlite3.connect(DB_PATH)
         with conn:
             conn.execute("DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE order_number LIKE '%TEST%');")
-            conn.execute("DELETE FROM orders WHERE order_number LIKE '%TEST%';")
-            conn.execute("DELETE FROM incomes WHERE reference LIKE '%TEST%' OR order_reference LIKE '%TEST%';")
+            conn.execute("DELETE FROM orders WHERE order_number LIKE '%TEST%' OR order_number = 'TW-20261115-375D8629';")
+            conn.execute("DELETE FROM incomes WHERE reference LIKE '%TEST%' OR order_reference LIKE '%TEST%' OR order_reference = 'TW-20261115-375D8629';")
             conn.execute("UPDATE discount_codes SET usage_count = (SELECT COUNT(*) FROM orders WHERE discount_code = discount_codes.code);")
         
         ord_cnt = conn.execute("SELECT count(*) FROM orders").fetchone()[0]
