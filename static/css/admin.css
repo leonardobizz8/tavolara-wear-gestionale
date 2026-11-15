@@ -758,19 +758,19 @@ body {
    CARDS (CRISP WHITE, RESTRAINED, NO GLASSMORPHISM)
    -------------------------------------------------------------------------- */
 .glass-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.91) 100%);
-  border: 1px solid rgba(229, 227, 221, 0.85);
-  border-radius: 14px;
-  box-shadow: 0 4px 20px -2px rgba(41, 40, 37, 0.045), 0 1px 3px rgba(41, 40, 37, 0.025), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.90) 50%, rgba(255, 255, 255, 0.95) 100%);
+  border: 1px solid rgba(224, 220, 212, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px -2px rgba(35, 34, 30, 0.045), 0 1px 3px rgba(35, 34, 30, 0.02), inset 0 1.5px 0 0 rgba(255, 255, 255, 1), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   position: relative;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  border-color: rgba(196, 119, 91, 0.4);
-  box-shadow: 0 10px 28px -4px rgba(41, 40, 37, 0.075), 0 2px 6px rgba(41, 40, 37, 0.035), inset 0 1px 0 0 #FFFFFF;
+  border-color: rgba(196, 119, 91, 0.45);
+  box-shadow: 0 12px 32px -4px rgba(35, 34, 30, 0.08), 0 3px 8px -2px rgba(35, 34, 30, 0.03), inset 0 1.5px 0 0 #FFFFFF, inset 0 0 0 1px rgba(255, 255, 255, 0.85);
   transform: translateY(-2px);
 }
 
@@ -2791,4 +2791,59 @@ body {
   .soci-overview-col {
     padding: 14px;
   }
+}
+
+/* Glossy KPI Icon Pills */
+.kpi-icon-pill {
+  border-radius: 10px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.9) !important;
+}
+.kpi-icon-pill.emerald {
+  background: linear-gradient(135deg, #E8F7ED 0%, #D4F0E0 100%) !important;
+  border: 1px solid #BDE3CC !important;
+  color: #1F6944 !important;
+}
+.kpi-icon-pill.rose {
+  background: linear-gradient(135deg, #FDECE9 0%, #FADCD7 100%) !important;
+  border: 1px solid #F5C6BF !important;
+  color: #B53F2E !important;
+}
+.kpi-icon-pill.navy {
+  background: linear-gradient(135deg, #FBF0EB 0%, #F5E2D8 100%) !important;
+  border: 1px solid #ECC6B5 !important;
+  color: #9C4B33 !important;
+}
+.kpi-icon-pill.amber {
+  background: linear-gradient(135deg, #FCF5EB 0%, #F9EBD6 100%) !important;
+  border: 1px solid #EED7BA !important;
+  color: #996225 !important;
+}
+
+/* Glossy Table Action Controls */
+.apple-table td .apple-btn-secondary {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8F6F2 100%) !important;
+  border: 1px solid rgba(225, 222, 214, 0.95) !important;
+  box-shadow: 0 1px 3px rgba(41, 40, 37, 0.04), inset 0 1px 0 #FFFFFF !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+.apple-table td .apple-btn-secondary:hover {
+  background: linear-gradient(180deg, #FFFFFF 0%, #F0EDE6 100%) !important;
+  border-color: var(--terracotta) !important;
+  box-shadow: 0 2px 6px rgba(41, 40, 37, 0.07), inset 0 1px 0 #FFFFFF !important;
+}
+
+/* Glossy Order Table Status Select */
+.order-status-select, .income-status-select {
+  border-radius: 9999px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+  font-weight: 600 !important;
+  padding: 3px 9px !important;
+}
+
+/* Glossy Table Card Header Bar */
+.table-toolbar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(250, 249, 246, 0.75) 100%) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1px solid rgba(225, 222, 214, 0.85) !important;
 }
