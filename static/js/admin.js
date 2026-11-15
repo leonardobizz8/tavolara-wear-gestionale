@@ -9,7 +9,7 @@
 const state = {
   token: localStorage.getItem("tavolara_admin_token") || "",
   authenticated: false,
-  currentView: "overview",
+  currentView: "attivo",
   
   // Date filter
   period: "all",
@@ -116,6 +116,69 @@ function formatDate(dateStr) {
   } catch (e) {
     return dateStr;
   }
+}
+
+function normalizeDateToIso(val) {
+  if (!val) return "";
+  const s = String(val).trim();
+  const itMatch = s.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
+  if (itMatch) {
+    const day = itMatch[1].padStart(2, "0");
+    const month = itMatch[2].padStart(2, "0");
+    const year = itMatch[3];
+    return `${year}-${month}-${day}`;
+  }
+  const isoMatch = s.match(/^(\d{4})[\/\.-](\d{1,2})[\/\.-](\d{1,2})/);
+  if (isoMatch) {
+    const year = isoMatch[1];
+    const month = isoMatch[2].padStart(2, "0");
+    const day = isoMatch[3].padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().substring(0, 10);
+  }
+  return s.substring(0, 10);
+}
+
+function sortIncomesByDateDesc(incomes) {
+  if (!Array.isArray(incomes)) return [];
+  return [...incomes].sort((a, b) => {
+    // 1. Primary: Date descending (newest date first - in cima alla tabella)
+    const dateA = normalizeDateToIso(a.date || (a.created_at ? a.created_at.substring(0, 10) : ""));
+    const dateB = normalizeDateToIso(b.date || (b.created_at ? b.created_at.substring(0, 10) : ""));
+    if (dateA !== dateB) {
+      return dateB.localeCompare(dateA);
+    }
+
+    // 2. Secondary: created_at timestamp descending (most recently created first)
+    const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    if (timeA && timeB && timeA !== timeB) {
+      return timeB - timeA;
+    }
+
+    // 3. Tertiary: Numeric ID descending (latest ID first)
+    const idA = typeof a.id === "number" ? a.id : (parseInt(a.id, 10) || 0);
+    const idB = typeof b.id === "number" ? b.id : (parseInt(b.id, 10) || 0);
+    if (idA !== idB) {
+      return idB - idA;
+    }
+
+    // 4. Excel order number or reference descending (e.g. EXCEL-059 > EXCEL-001)
+    const refA = a.order_reference || a.reference || a.description || "";
+    const refB = b.order_reference || b.reference || b.description || "";
+    const mNumA = refA.match(/(?:#|EXCEL-)(\d+)/i);
+    const mNumB = refB.match(/(?:#|EXCEL-)(\d+)/i);
+    if (mNumA && mNumB) {
+      const nA = parseInt(mNumA[1], 10);
+      const nB = parseInt(mNumB[1], 10);
+      if (nA !== nB) return nB - nA;
+    }
+
+    return 0;
+  });
 }
 
 function showToast(message, type = "success") {
@@ -297,7 +360,22 @@ function toggleMobileSidebar() {
 }
 
 function switchView(viewName) {
+  if (viewName !== "passivo") {
+    viewName = "attivo";
+  }
   state.currentView = viewName;
+
+  // Update primary tab buttons
+  const tabAttivo = document.getElementById("tab-btn-attivo");
+  const tabPassivo = document.getElementById("tab-btn-passivo");
+  if (tabAttivo) {
+    if (viewName === "attivo") tabAttivo.classList.add("active");
+    else tabAttivo.classList.remove("active");
+  }
+  if (tabPassivo) {
+    if (viewName === "passivo") tabPassivo.classList.add("active");
+    else tabPassivo.classList.remove("active");
+  }
 
   // Update sidebar links
   document.querySelectorAll(".sidebar-link").forEach(link => {
@@ -327,47 +405,27 @@ function switchView(viewName) {
   const activeSec = document.getElementById(`view-${viewName}`);
   if (activeSec) activeSec.classList.add("active");
 
-  // Update top header titles
+  // Update top header titles (subtitles removed as requested)
   const titles = {
-    overview: { title: "Overview Finanziaria", sub: "Quadro economico consolidato e KPI Tavolara Wear" },
-    soci: { title: "Ripartizione Utili Soci", sub: "Divisione utile netto tra Andrea Palamidesi (Pala) e Leonardo Bizzotto (Leo)" },
-    attivo: { title: "Attivo (Entrate)", sub: "Monitoraggio incassi, conferme ed entrate commerciali" },
-    passivo: { title: "Passivo (Uscite & Spese)", sub: "Gestione analitica di trasporto, imballaggio, prove e magliette" },
-    insights: { title: "Insights & Analytics", sub: "Spaccato vendite per colore, taglie, matrice e redditività" },
-    orders: { title: "Ordini Clienti", sub: "Riepilogo e sincronizzazione ordini raccolti online" },
-    config: { title: "Impostazioni & Magazzino", sub: "Prezzi, disponibilità taglie e coordinate bancarie" }
+    attivo: { title: "Entrate (Incassi)" },
+    passivo: { title: "Uscite (Spese)" }
   };
-  const t = titles[viewName] || titles.overview;
-  document.getElementById("page-title").textContent = t.title;
-  document.getElementById("page-subtitle").textContent = t.sub;
+  const t = titles[viewName] || titles.attivo;
+  const pTitle = document.getElementById("page-title");
+  const pSub = document.getElementById("page-subtitle");
+  if (pTitle) pTitle.textContent = t.title;
+  if (pSub) pSub.textContent = "";
 
   // Refresh data for the newly selected view
   refreshCurrentView();
 }
 
 function refreshCurrentView() {
-  switch (state.currentView) {
-    case "overview":
-      loadOverview();
-      break;
-    case "soci":
-      loadSociProfit();
-      break;
-    case "attivo":
-      loadIncomes();
-      break;
-    case "passivo":
-      loadExpenses();
-      break;
-    case "insights":
-      loadInsights();
-      break;
-    case "orders":
-      loadOrders();
-      break;
-    case "config":
-      loadConfig();
-      break;
+  loadOverview(); // Always keep top balance KPIs synchronized
+  if (state.currentView === "passivo") {
+    loadExpenses();
+  } else {
+    loadIncomes();
   }
 }
 
@@ -501,7 +559,54 @@ async function loadOverview() {
     const elAvgOrderRev = document.getElementById("ov-avg-order-rev");
     if (elAvgOrderRev) elAvgOrderRev.textContent = formatEuro(avgOrderRev);
 
-    // Update sidebar badges
+    // Update permanent top balance KPIs
+    const elGlobalIncomes = document.getElementById("global-kpi-incomes");
+    if (elGlobalIncomes) elGlobalIncomes.textContent = formatEuro(totalIncomes);
+
+    const elGlobalIncomesSub = document.getElementById("global-kpi-incomes-sub");
+    if (elGlobalIncomesSub) elGlobalIncomesSub.textContent = `${incCount} movimenti registrati`;
+
+    const elGlobalExpenses = document.getElementById("global-kpi-expenses");
+    if (elGlobalExpenses) elGlobalExpenses.textContent = formatEuro(totalExpenses);
+
+    const elGlobalExpensesSub = document.getElementById("global-kpi-expenses-sub");
+    if (elGlobalExpensesSub) elGlobalExpensesSub.textContent = `${expCount} spese registrate`;
+
+    const elGlobalNet = document.getElementById("global-kpi-net");
+    if (elGlobalNet) {
+      elGlobalNet.textContent = formatEuro(currentBal);
+      elGlobalNet.className = "kpi-value " + (currentBal >= 0 ? "emerald-val" : "rose-val");
+    }
+
+    const elGlobalNetSub = document.getElementById("global-kpi-net-sub");
+    if (elGlobalNetSub) elGlobalNetSub.textContent = `+${Number(grossMargin).toFixed(1)}% margine netto`;
+
+    const palaProfit = Math.round(currentBal * 0.5 * 100) / 100;
+    const leoProfit = Math.round(currentBal * 0.5 * 100) / 100;
+
+    const elGlobalPala = document.getElementById("global-kpi-pala");
+    if (elGlobalPala) elGlobalPala.textContent = formatEuro(palaProfit);
+
+    const elGlobalLeo = document.getElementById("global-kpi-leo");
+    if (elGlobalLeo) elGlobalLeo.textContent = formatEuro(leoProfit);
+
+    // Revolut Ultra Dark Assets & Flow Micro Badges
+    const elGlobalAssets = document.getElementById("global-kpi-assets");
+    if (elGlobalAssets) elGlobalAssets.textContent = formatEuro(currentBal);
+
+    const elGlobalNetInflow = document.getElementById("global-kpi-net-inflow");
+    if (elGlobalNetInflow) elGlobalNetInflow.textContent = `+ ${formatEuro(totalIncomes)}`;
+
+    const elGlobalNetOutflow = document.getElementById("global-kpi-net-outflow");
+    if (elGlobalNetOutflow) elGlobalNetOutflow.textContent = `- ${formatEuro(totalExpenses)}`;
+
+    // Update primary tab counters & sidebar badges
+    const tabBadgeInc = document.getElementById("tab-badge-incomes");
+    if (tabBadgeInc) tabBadgeInc.textContent = incCount;
+
+    const tabBadgeExp = document.getElementById("tab-badge-expenses");
+    if (tabBadgeExp) tabBadgeExp.textContent = expCount;
+
     const sideBadgeIncomes = document.getElementById("side-badge-incomes");
     if (sideBadgeIncomes) sideBadgeIncomes.textContent = incCount;
 
@@ -510,6 +615,26 @@ async function loadOverview() {
 
     const sideBadgeOrders = document.getElementById("side-badge-orders");
     if (sideBadgeOrders) sideBadgeOrders.textContent = ordersCount;
+
+    const hdrExcelLbl = document.getElementById("header-excel-label");
+    if (hdrExcelLbl) hdrExcelLbl.textContent = `Excel: ${incCount} Ordini`;
+
+    const sideExcelStats = document.getElementById("side-excel-stats");
+    if (sideExcelStats) sideExcelStats.textContent = `${incCount} ordini · ${formatEuro(totalIncomes)}`;
+
+    // Update modal excel values
+    const elExcelRev = document.getElementById("excel-modal-rev");
+    if (elExcelRev) elExcelRev.textContent = formatEuro(totalIncomes);
+    const elExcelCosts = document.getElementById("excel-modal-costs");
+    if (elExcelCosts) elExcelCosts.textContent = formatEuro(totalExpenses);
+    const elExcelProfit = document.getElementById("excel-modal-profit");
+    if (elExcelProfit) elExcelProfit.textContent = formatEuro(currentBal);
+    const elExcelPala = document.getElementById("excel-modal-pala");
+    if (elExcelPala) elExcelPala.textContent = formatEuro(palaProfit);
+    const elExcelBizz = document.getElementById("excel-modal-bizz");
+    if (elExcelBizz) elExcelBizz.textContent = formatEuro(leoProfit);
+    const elExcelOrdersPill = document.getElementById("excel-modal-orders-pill");
+    if (elExcelOrdersPill) elExcelOrdersPill.textContent = `${incCount} Ordini`;
 
     // Render Partner Profit Overview Preview
     renderSociOverviewWidget(res);
@@ -797,7 +922,9 @@ async function loadIncomes() {
       }
       res = await apiRequest(url);
     }
-    state.incomes = res.incomes;
+    // Sort incomes by date descending so new incoming orders are always on top
+    const sortedIncomes = sortIncomesByDateDesc(res.incomes);
+    state.incomes = sortedIncomes;
     state.incomesSummary = res.summary;
 
     // Render Summary Cards
@@ -808,7 +935,7 @@ async function loadIncomes() {
     document.getElementById("inc-sum-confirmed").textContent = formatEuro(res.summary.confirmed);
 
     // Render Table
-    renderIncomesTable(res.incomes);
+    renderIncomesTable(sortedIncomes);
   } catch (err) {
     showToast("Errore caricamento entrate: " + err.message, "error");
   }
@@ -816,28 +943,52 @@ async function loadIncomes() {
 
 function renderIncomesTable(incomes) {
   const tbody = document.getElementById("incomes-table-body");
-  if (!tbody) return;
-  tbody.innerHTML = "";
+  const mobileContainer = document.getElementById("incomes-mobile-cards");
+  if (tbody) tbody.innerHTML = "";
+  if (mobileContainer) mobileContainer.innerHTML = "";
 
   if (incomes.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="8">
-          <div class="empty-table-state">
-            <div class="empty-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8">
+            <div class="empty-table-state">
+              <div class="empty-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+              </div>
+              <strong>Nessuna entrata trovata</strong>
+              <p style="font-size: 13px; max-width: 320px;">Registra manualmente una nuova entrata con il pulsante in alto o sincronizza gli ordini confermati.</p>
             </div>
-            <strong>Nessuna entrata trovata</strong>
-            <p style="font-size: 13px; max-width: 320px;">Registra manualmente una nuova entrata con il pulsante in alto o sincronizza gli ordini confermati.</p>
+          </td>
+        </tr>
+      `;
+    }
+    if (mobileContainer) {
+      mobileContainer.innerHTML = `
+        <div class="empty-mobile-state">
+          <div class="empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
           </div>
-        </td>
-      </tr>
-    `;
+          <strong>Nessuna entrata trovata</strong>
+          <p>Tocca "+ Entrata" in alto per aggiungere la prima entrata.</p>
+        </div>
+      `;
+    }
     return;
   }
 
   incomes.forEach(inc => {
     const tr = document.createElement("tr");
+
+    // Check if this row is the latest incoming order (highlight at the top)
+    const isNewIncoming = Boolean(
+      (window._latestIncomingIncomeId && String(inc.id) === String(window._latestIncomingIncomeId)) ||
+      (window._latestIncomingOrderId && String(inc.order_id) === String(window._latestIncomingOrderId)) ||
+      (window._latestIncomingOrderNumber && (inc.order_reference === window._latestIncomingOrderNumber || inc.reference === window._latestIncomingOrderNumber))
+    );
+    if (isNewIncoming) {
+      tr.classList.add("highlight-new-row");
+    }
 
     // Status select inline
     const isInc = inc.status === "Incassata";
@@ -882,6 +1033,24 @@ function renderIncomesTable(incomes) {
       </td>
     `;
     tbody.appendChild(tr);
+
+    // Mobile Feed Card
+    if (mobileContainer) {
+      const card = document.createElement("div");
+      card.className = "mobile-record-card";
+      card.innerHTML = `
+        <div class="mobile-record-header">
+          <div class="mobile-record-desc">${escapeHtml(inc.description)}</div>
+          <div class="mobile-record-amount in">+ ${formatEuro(inc.amount)}</div>
+        </div>
+        <div class="mobile-record-meta">
+          <span>${formatDate(inc.date)} • ${escapeHtml(inc.payment_method || 'Pagamento')}</span>
+          <span class="status-pill ${isInc ? 'incassata' : 'in-attesa'}">${isInc ? '● Incassata' : '● In attesa'}</span>
+        </div>
+        ${cleanRef ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Rif: #${escapeHtml(cleanRef)}</div>` : ''}
+      `;
+      mobileContainer.appendChild(card);
+    }
   });
 
   // Attach status change events
@@ -1074,9 +1243,16 @@ async function openSyncOrdersModal() {
       }
     });
 
-    // Filter non-cancelled orders & sort descending (59, 58 down to 1)
+    // Filter non-cancelled orders & sort (Modulo Web orders first by date, then 059 down to 001)
     const syncable = orders.filter(o => o.status !== "Annullato");
     syncable.sort((a, b) => {
+      const isExcelA = (a.order_number || "").startsWith("EXCEL-");
+      const isExcelB = (b.order_number || "").startsWith("EXCEL-");
+      if (!isExcelA && isExcelB) return -1;
+      if (isExcelA && !isExcelB) return 1;
+      if (!isExcelA && !isExcelB) {
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      }
       const numA = parseInt((a.order_number || "").replace(/\D/g, ""), 10) || (a.id || 0);
       const numB = parseInt((b.order_number || "").replace(/\D/g, ""), 10) || (b.id || 0);
       return numB - numA;
@@ -1111,8 +1287,13 @@ async function openSyncOrdersModal() {
       if (isIncassata) attivoBadgeClass = "incassata";
       else if (isConfermata) attivoBadgeClass = "confermata";
 
+      const isOnlineOrd = !(ord.order_number || "").startsWith("EXCEL-");
+      const badgeOrdSource = isOnlineOrd
+        ? `<span class="badge" style="background: rgba(37, 99, 235, 0.12); color: #2563eb; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Modulo Web</span>`
+        : `<span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Excel</span>`;
+
       tr.innerHTML = `
-        <td class="fw-bold">#${escapeHtml(ord.order_number)}</td>
+        <td class="fw-bold">#${escapeHtml((ord.order_number || "").replace(/^#/, ""))} ${badgeOrdSource}</td>
         <td>${escapeHtml(ord.customer_first_name)} ${escapeHtml(ord.customer_last_name)}</td>
         <td class="fw-bold">${formatEuro(ord.total_amount)}</td>
         <td><span class="status-pill confermata" style="font-size: 11px;">${escapeHtml(ord.status || 'Ricevuto')}</span></td>
@@ -1219,7 +1400,7 @@ async function loadExpenses() {
     state.expenses = Array.isArray(res?.expenses) ? res.expenses : [];
     state.expensesSummary = res?.summary || {
       total_amount: 0,
-      by_category: { trasporto: 0, imballaggio: 0, prove: 0, magliette: 0 },
+      by_category: { magliette: 0, trasporto: 0, imballaggio: 0, altre: 0 },
       category_metrics: { total_shipments: 0, total_packaging_items: 0, total_shirts_purchased: 0, avg_unit_cost: 0 }
     };
 
@@ -1234,7 +1415,7 @@ async function loadExpenses() {
 function renderExpensesMetrics(summary) {
   if (!summary) summary = {};
   const cat = state.expenseCategoryTab;
-  const byCat = summary.by_category || { trasporto: 0, imballaggio: 0, prove: 0, magliette: 0 };
+  const byCat = summary.by_category || { magliette: 0, trasporto: 0, imballaggio: 0, altre: 0 };
   const catMetrics = summary.category_metrics || { total_shipments: 0, total_packaging_items: 0, total_shirts_purchased: 0, avg_unit_cost: 0 };
   const totalAmount = summary.total_amount ?? summary.total ?? 0;
 
@@ -1286,18 +1467,18 @@ function renderExpensesMetrics(summary) {
     kpi4Val.textContent = "100%";
     kpi4Sub.textContent = "Filtro attivo Imballaggio";
 
-  } else if (cat === "prove") {
-    kpi2Lbl.textContent = "Prove Registrate";
+  } else if (cat === "altre") {
+    kpi2Lbl.textContent = "Altre Spese";
     kpi2Val.textContent = state.expenses.length;
-    kpi2Sub.textContent = "Campionature e test serigrafia";
+    kpi2Sub.textContent = "Spese operative varie";
 
-    kpi3Lbl.textContent = "Totale Speso Prove";
-    kpi3Val.textContent = formatEuro(byCat.prove || 0);
-    kpi3Sub.textContent = "Sviluppo prototipale";
+    kpi3Lbl.textContent = "Totale Altre Spese";
+    kpi3Val.textContent = formatEuro(byCat.altre || 0);
+    kpi3Sub.textContent = "Gestione generale";
 
     kpi4Lbl.textContent = "Incidenza Categoria";
     kpi4Val.textContent = "100%";
-    kpi4Sub.textContent = "Filtro attivo Prove";
+    kpi4Sub.textContent = "Filtro attivo Altre Spese";
 
   } else if (cat === "magliette") {
     kpi2Lbl.textContent = "Magliette Acquistate";
@@ -1314,17 +1495,17 @@ function renderExpensesMetrics(summary) {
 
   } else {
     // All categories overview
-    kpi2Lbl.textContent = "Spese di Trasporto";
-    kpi2Val.textContent = formatEuro(byCat.trasporto || 0);
-    kpi2Sub.textContent = `${catMetrics.total_shipments || 0} spedizioni registrate`;
+    kpi2Lbl.textContent = "Magliette & Stock";
+    kpi2Val.textContent = formatEuro(byCat.magliette || 0);
+    kpi2Sub.textContent = `${catMetrics.total_shirts_purchased || 0} capi acquistati`;
 
-    kpi3Lbl.textContent = "Spese di Imballaggio";
-    kpi3Val.textContent = formatEuro(byCat.imballaggio || 0);
-    kpi3Sub.textContent = `${catMetrics.total_packaging_items || 0} packaging acquistati`;
+    kpi3Lbl.textContent = "Spese di Trasporto";
+    kpi3Val.textContent = formatEuro(byCat.trasporto || 0);
+    kpi3Sub.textContent = `${catMetrics.total_shipments || 0} spedizioni registrate`;
 
-    kpi4Lbl.textContent = "Magliette & Prove";
-    kpi4Val.textContent = formatEuro((byCat.magliette || 0) + (byCat.prove || 0));
-    kpi4Sub.textContent = "Produzione, prototipi e stock";
+    kpi4Lbl.textContent = "Imballaggio & Altro";
+    kpi4Val.textContent = formatEuro((byCat.imballaggio || 0) + (byCat.altre || 0));
+    kpi4Sub.textContent = "Scatole, packaging e materiali";
   }
 }
 
@@ -1344,8 +1525,8 @@ function renderExpensesTrendChart(expenses) {
   const values = sortedDates.map(d => dateMap[d]);
 
   const grad = ctx.createLinearGradient(0, 0, 0, 200);
-  grad.addColorStop(0, "rgba(186, 74, 56, 0.16)");
-  grad.addColorStop(1, "rgba(186, 74, 56, 0.0)");
+  grad.addColorStop(0, "rgba(255, 69, 58, 0.28)");
+  grad.addColorStop(1, "rgba(255, 69, 58, 0.0)");
 
   charts.expensesTrend = new Chart(ctx, {
     type: "line",
@@ -1354,13 +1535,13 @@ function renderExpensesTrendChart(expenses) {
       datasets: [{
         label: "Spesa (€)",
         data: values.length ? values : [0],
-        borderColor: "#BA4A38",
+        borderColor: "#FF453A",
         backgroundColor: grad,
-        borderWidth: 2,
+        borderWidth: 2.5,
         tension: 0.35,
         fill: true,
-        pointRadius: 3.5,
-        pointBackgroundColor: "#BA4A38"
+        pointRadius: 4,
+        pointBackgroundColor: "#FF453A"
       }]
     },
     options: {
@@ -1375,10 +1556,13 @@ function renderExpensesTrendChart(expenses) {
         }
       },
       scales: {
-        x: { grid: { display: false } },
+        x: { 
+          grid: { display: false },
+          ticks: { color: "#8576A6", font: { size: 11 } }
+        },
         y: {
-          grid: { color: "#ECEAE4" },
-          ticks: { callback: v => "€ " + v }
+          grid: { color: "rgba(255, 255, 255, 0.06)" },
+          ticks: { color: "#8576A6", font: { size: 11 }, callback: v => "€ " + v }
         }
       }
     }
@@ -1408,7 +1592,7 @@ function renderExpensesTable(expenses) {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/></svg>
               </div>
               <strong>Nessuna spesa trovata</strong>
-              <p style="font-size: 13px; max-width: 320px;">Registra una nuova spesa per Trasporto, Imballaggio, Prove o Magliette.</p>
+              <p style="font-size: 13px; max-width: 320px;">Registra una nuova spesa per Magliette, Trasporto, Imballaggio o Altre spese.</p>
             </div>
           </td>
         </tr>
@@ -1449,12 +1633,12 @@ function renderExpensesTable(expenses) {
         ${exp.unit_cost ? `<span style="font-size: 11.5px; color: var(--text-muted);"> (@ ${formatEuro(exp.unit_cost)})</span>` : ""}
       `;
       detailsText = `${exp.material_type || "Packaging"}${exp.quantity ? ` • Q.tà: ${exp.quantity}` : ""}${exp.unit_cost ? ` (@ ${formatEuro(exp.unit_cost)})` : ""}`;
-    } else if (exp.category === "prove") {
-      iconEmoji = "🧪";
+    } else if (exp.category === "altre") {
+      iconEmoji = "💼";
       detailsHtml = `
-        <span><strong>${escapeHtml(exp.proof_type || "Test prototipo")}</strong></span>
+        <span><strong>${escapeHtml(exp.supplier || "Spesa Operativa")}</strong></span>
       `;
-      detailsText = `${exp.proof_type || "Test prototipo"}`;
+      detailsText = `${exp.supplier || "Spesa Operativa"}`;
     } else if (exp.category === "magliette") {
       iconEmoji = "👕";
       detailsHtml = `
@@ -1530,7 +1714,7 @@ function renderExpensesTable(expenses) {
 }
 
 function updateExpenseModalFields(category) {
-  const categories = ["trasporto", "imballaggio", "prove", "magliette"];
+  const categories = ["magliette", "trasporto", "imballaggio", "altre"];
   categories.forEach(cat => {
     const el = document.getElementById(`exp-fields-${cat}`);
     if (el) {
@@ -1591,13 +1775,14 @@ function openExpenseModal(expenseId = null, preselectedCat = null) {
         document.getElementById("exp-pack-material").value = exp.material_type || "Scatole";
         document.getElementById("exp-pack-qty").value = exp.quantity || "";
         document.getElementById("exp-pack-unit").value = exp.unit_cost || "";
-      } else if (exp.category === "prove") {
-        document.getElementById("exp-proof-type").value = exp.proof_type || "Campioni e prototipi";
       } else if (exp.category === "magliette") {
         document.getElementById("exp-shirt-supplier").value = exp.supplier || "";
         document.getElementById("exp-shirt-qty").value = exp.quantity || "";
         document.getElementById("exp-shirt-unit").value = exp.unit_cost || "";
         document.getElementById("exp-shirt-extra").value = exp.extra_production_costs || "0.00";
+      } else if (exp.category === "altre") {
+        const elAlt = document.getElementById("exp-altre-supplier");
+        if (elAlt) elAlt.value = exp.supplier || "";
       }
     }
   } else {
@@ -1606,7 +1791,7 @@ function openExpenseModal(expenseId = null, preselectedCat = null) {
     document.getElementById("exp-date").value = new Date().toISOString().substring(0, 10);
     
     // Auto-select category based on active tab or arg
-    const chosenCat = preselectedCat || (state.expenseCategoryTab !== "all" ? state.expenseCategoryTab : "trasporto");
+    const chosenCat = preselectedCat || (state.expenseCategoryTab !== "all" ? state.expenseCategoryTab : "magliette");
     catSelect.value = chosenCat;
   }
 
@@ -1637,13 +1822,14 @@ async function saveExpense(e) {
     payload.material_type = document.getElementById("exp-pack-material").value;
     payload.quantity = parseInt(document.getElementById("exp-pack-qty").value) || 0;
     payload.unit_cost = parseFloat(document.getElementById("exp-pack-unit").value) || 0;
-  } else if (cat === "prove") {
-    payload.proof_type = document.getElementById("exp-proof-type").value;
   } else if (cat === "magliette") {
     payload.supplier = document.getElementById("exp-shirt-supplier").value.trim();
     payload.quantity = parseInt(document.getElementById("exp-shirt-qty").value) || 0;
     payload.unit_cost = parseFloat(document.getElementById("exp-shirt-unit").value) || 0;
     payload.extra_production_costs = parseFloat(document.getElementById("exp-shirt-extra").value) || 0;
+  } else if (cat === "altre") {
+    const elAlt = document.getElementById("exp-altre-supplier");
+    if (elAlt) payload.supplier = elAlt.value.trim();
   }
 
   try {
@@ -2383,8 +2569,15 @@ function renderOrdersTable(orders) {
     return true;
   });
 
-  // Sort orders descending (EXCEL-059, EXCEL-058 down to EXCEL-001)
+  // Sort orders: Modulo Web orders first by date, then EXCEL orders descending (059 down to 001)
   filtered.sort((a, b) => {
+    const isExcelA = (a.order_number || "").startsWith("EXCEL-");
+    const isExcelB = (b.order_number || "").startsWith("EXCEL-");
+    if (!isExcelA && isExcelB) return -1;
+    if (isExcelA && !isExcelB) return 1;
+    if (!isExcelA && !isExcelB) {
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    }
     const numA = parseInt((a.order_number || "").replace(/\D/g, ""), 10) || (a.id || 0);
     const numB = parseInt((b.order_number || "").replace(/\D/g, ""), 10) || (b.id || 0);
     return numB - numA;
@@ -2402,8 +2595,13 @@ function renderOrdersTable(orders) {
     const itemsSummary = (o.items || []).map(i => `${i.quantity}x ${i.color_name || (i.color === 'white' ? 'Bianca' : 'Blu navy')} (${i.size})`).join(", ") || "T-shirt";
     const customerDisplayName = (o.customer_name || `${o.customer_first_name || ''} ${o.customer_last_name || ''}`.trim()) || "Cliente";
 
+    const isOnline = !(o.order_number || "").startsWith("EXCEL-");
+    const badgeSource = isOnline
+      ? `<span class="badge" style="background: rgba(37, 99, 235, 0.12); color: #2563eb; font-size: 10px; margin-left: 6px; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Modulo Web</span>`
+      : `<span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 10px; margin-left: 6px; padding: 2px 7px; border-radius: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Excel</span>`;
+
     tr.innerHTML = `
-      <td class="fw-bold">#${escapeHtml((o.order_number || "").replace(/^#/, ""))}</td>
+      <td class="fw-bold">#${escapeHtml((o.order_number || "").replace(/^#/, ""))} ${badgeSource}</td>
       <td>${formatDate(o.created_at ? o.created_at.substring(0, 10) : "")}</td>
       <td>
         <div style="font-weight: 600;">${escapeHtml(customerDisplayName)}</div>
@@ -2432,6 +2630,24 @@ function renderOrdersTable(orders) {
       </td>
     `;
     tbody.appendChild(tr);
+
+    // Mobile Feed Card
+    if (mobileContainer) {
+      const card = document.createElement("div");
+      card.className = "mobile-record-card";
+      card.innerHTML = `
+        <div class="mobile-record-header">
+          <div class="mobile-record-desc">${escapeHtml(inc.description)}</div>
+          <div class="mobile-record-amount in">+ ${formatEuro(inc.amount)}</div>
+        </div>
+        <div class="mobile-record-meta">
+          <span>${formatDate(inc.date)} • ${escapeHtml(inc.payment_method || 'Pagamento')}</span>
+          <span class="status-pill ${isInc ? 'incassata' : 'in-attesa'}">${isInc ? '● Incassata' : '● In attesa'}</span>
+        </div>
+        ${cleanRef ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Rif: #${escapeHtml(cleanRef)}</div>` : ''}
+      `;
+      mobileContainer.appendChild(card);
+    }
   });
 
   // Attach status change events
@@ -2490,8 +2706,19 @@ function renderOrdersTable(orders) {
 // ---------------------------------------------------------------------------
 async function loadConfig() {
   try {
-    const cfgRes = await apiRequest("/api/admin/config");
-    state.config = cfgRes.config || {};
+    let cfg = null;
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      try {
+        cfg = await window.TavolaraSupabase.getConfig();
+      } catch (e) {
+        console.warn("[Admin] Supabase getConfig fallback:", e);
+      }
+    }
+    if (!cfg || !cfg.shirt_price) {
+      const cfgRes = await apiRequest("/api/admin/config");
+      cfg = cfgRes.config || {};
+    }
+    state.config = cfg || {};
 
     document.getElementById("cfg-shirt-price").value = state.config.shirt_price || "";
     document.getElementById("cfg-shipping-locker").value = state.config.shipping_locker || "";
@@ -2541,6 +2768,24 @@ function renderVariantsTable(variants) {
       </td>
     `;
     tbody.appendChild(tr);
+
+    // Mobile Feed Card
+    if (mobileContainer) {
+      const card = document.createElement("div");
+      card.className = "mobile-record-card";
+      card.innerHTML = `
+        <div class="mobile-record-header">
+          <div class="mobile-record-desc">${escapeHtml(inc.description)}</div>
+          <div class="mobile-record-amount in">+ ${formatEuro(inc.amount)}</div>
+        </div>
+        <div class="mobile-record-meta">
+          <span>${formatDate(inc.date)} • ${escapeHtml(inc.payment_method || 'Pagamento')}</span>
+          <span class="status-pill ${isInc ? 'incassata' : 'in-attesa'}">${isInc ? '● Incassata' : '● In attesa'}</span>
+        </div>
+        ${cleanRef ? `<div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Rif: #${escapeHtml(cleanRef)}</div>` : ''}
+      `;
+      mobileContainer.appendChild(card);
+    }
   });
 
   tbody.querySelectorAll(".btn-toggle-variant").forEach(btn => {
@@ -2755,7 +3000,13 @@ function triggerRealtimeRefresh(message) {
   if (_realtimeDebounceTimer) clearTimeout(_realtimeDebounceTimer);
   _realtimeDebounceTimer = setTimeout(() => {
     refreshCurrentView();
+    loadOverview();
     loadExcelStatus();
+    setTimeout(() => {
+      window._latestIncomingIncomeId = null;
+      window._latestIncomingOrderId = null;
+      window._latestIncomingOrderNumber = null;
+    }, 4500);
   }, 300);
 }
 
@@ -2774,8 +3025,13 @@ function setupSupabaseRealtime() {
       { event: "*", schema: "public", table: "orders" },
       (payload) => {
         console.log("[Realtime Supabase] Ordine:", payload.eventType, payload.new || payload.old);
-        const eventLabel = payload.eventType === "INSERT" ? "⚡ Nuovo ordine ricevuto dal modulo!" : "⚡ Ordine aggiornato!";
-        triggerRealtimeRefresh(eventLabel);
+        if (payload.eventType === "INSERT") {
+          window._latestIncomingOrderId = payload.new?.id;
+          window._latestIncomingOrderNumber = payload.new?.order_number;
+          triggerRealtimeRefresh("⚡ Nuovo ordine ricevuto dal modulo!");
+        } else {
+          triggerRealtimeRefresh("⚡ Ordine aggiornato!");
+        }
       }
     );
 
@@ -2785,7 +3041,13 @@ function setupSupabaseRealtime() {
       { event: "*", schema: "public", table: "transactions" },
       (payload) => {
         console.log("[Realtime Supabase] Movimento incasso:", payload.eventType);
-        triggerRealtimeRefresh("⚡ Incasso registrato / aggiornato!");
+        if (payload.eventType === "INSERT") {
+          window._latestIncomingIncomeId = payload.new?.id;
+          if (payload.new?.reference) window._latestIncomingOrderNumber = payload.new.reference;
+          triggerRealtimeRefresh("⚡ Nuovo ordine / incasso in arrivo!");
+        } else {
+          triggerRealtimeRefresh("⚡ Incasso registrato / aggiornato!");
+        }
       }
     );
 
@@ -2846,7 +3108,8 @@ async function loadInitialData() {
   }
   setupPeriodicRefresh();
   loadExcelStatus();
-  switchView("overview");
+  loadOverview();
+  switchView("attivo");
 }
 
 function updateSupabaseStatusBadge() {
@@ -2902,7 +3165,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. Logout Button
   document.getElementById("btn-logout")?.addEventListener("click", logout);
 
-  // 4. Sidebar View Switchers
+  // 4. Primary Tabs & Sidebar View Switchers
+  document.getElementById("tab-btn-attivo")?.addEventListener("click", () => switchView("attivo"));
+  document.getElementById("tab-btn-passivo")?.addEventListener("click", () => switchView("passivo"));
+
   document.querySelectorAll(".sidebar-link").forEach(link => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
@@ -2984,6 +3250,15 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = window.location.pathname + "?t=" + Date.now();
     }, 400);
   });
+
+  // Pill Soci toggle -> opens Excel / Cloud modal
+  const pillSoci = document.getElementById("pill-soci-toggle");
+  if (pillSoci) {
+    pillSoci.addEventListener("click", () => {
+      openModal("modal-excel-sync");
+      loadExcelStatus();
+    });
+  }
 
   // 5. Time Period Filters
   document.querySelectorAll("#time-filter-control .segment-item").forEach(btn => {
@@ -3221,12 +3496,20 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-config-prices")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
-      await apiRequest("/api/admin/config", "PUT", {
+      const payload = {
         shirt_price: document.getElementById("cfg-shirt-price").value,
         shipping_locker: document.getElementById("cfg-shipping-locker").value,
         shipping_home: document.getElementById("cfg-shipping-home").value,
         shipping_hand: document.getElementById("cfg-shipping-hand").value
-      });
+      };
+      if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+        try {
+          await window.TavolaraSupabase.updateConfig(payload);
+        } catch (sbErr) {
+          console.warn("[Admin] Supabase updateConfig prices error:", sbErr);
+        }
+      }
+      await apiRequest("/api/admin/config", "PUT", payload);
       showToast("Prezzi e tariffe salvati con successo");
     } catch (err) {
       showToast(err.message, "error");
@@ -3236,11 +3519,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-config-bank")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
-      await apiRequest("/api/admin/config", "PUT", {
+      const payload = {
         bank_holder: document.getElementById("cfg-bank-holder").value,
         bank_iban: document.getElementById("cfg-bank-iban").value,
         bank_name: document.getElementById("cfg-bank-name").value
-      });
+      };
+      if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+        try {
+          await window.TavolaraSupabase.updateConfig(payload);
+        } catch (sbErr) {
+          console.warn("[Admin] Supabase updateConfig bank error:", sbErr);
+        }
+      }
+      await apiRequest("/api/admin/config", "PUT", payload);
       showToast("Coordinate bancarie salvate con successo");
     } catch (err) {
       showToast(err.message, "error");

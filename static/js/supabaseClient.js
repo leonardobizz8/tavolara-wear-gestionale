@@ -294,6 +294,23 @@
         throw error;
       }
 
+      // Automatically create matching income row in Supabase transactions
+      try {
+        await this.client.from("transactions").insert({
+          type: "incasso",
+          order_id: data.order?.id,
+          description: `Ordine #${orderNumber} — ${custFirst} ${custLast}`,
+          amount: totalAmount,
+          date: new Date().toISOString().slice(0, 10),
+          payment_method: "Bonifico bancario",
+          status: "In attesa",
+          reference: orderNumber,
+          notes: `Ordine online. Consegna: ${formData.delivery_method}`
+        });
+      } catch (txErr) {
+        console.warn("[Tavolara Supabase] Avviso creazione transazione per ordine:", txErr);
+      }
+
       // Format response compatible with app.js confirmation screen
       return {
         success: true,
@@ -354,6 +371,7 @@
       let query = this.client
         .from("orders")
         .select("*, order_items(*)")
+        .order("created_at", { ascending: false })
         .order("id", { ascending: false });
 
       if (filters.status && filters.status !== "all") {
@@ -384,8 +402,15 @@
         }))
       }));
 
-      // Sort orders descending (EXCEL-059, EXCEL-058 down to EXCEL-001)
+      // Sort orders: Modulo Web orders first by date, then EXCEL orders descending (059 down to 001)
       list.sort((a, b) => {
+        const isExcelA = (a.order_number || "").startsWith("EXCEL-");
+        const isExcelB = (b.order_number || "").startsWith("EXCEL-");
+        if (!isExcelA && isExcelB) return -1;
+        if (isExcelA && !isExcelB) return 1;
+        if (!isExcelA && !isExcelB) {
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+        }
         const numA = parseInt((a.order_number || "").replace(/\D/g, ""), 10) || (a.id || 0);
         const numB = parseInt((b.order_number || "").replace(/\D/g, ""), 10) || (b.id || 0);
         return numB - numA;
@@ -450,6 +475,7 @@
         .from("transactions")
         .select("*")
         .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
         .order("id", { ascending: false });
 
       if (filters.status && filters.status !== "all") {
@@ -767,10 +793,10 @@
       }
 
       const breakdown = {
+        magliette: 0,
         trasporto: 0,
         imballaggio: 0,
-        prove: 0,
-        magliette: 0
+        altre: 0
       };
       let total = 0;
       let totalShipments = 0;
@@ -780,12 +806,15 @@
       list.forEach(e => {
         const amt = parseFloat(e.amount) || 0;
         total += amt;
-        if (breakdown[e.category_code] !== undefined) {
-          breakdown[e.category_code] += amt;
+        const code = e.category_code || e.category;
+        if (breakdown[code] !== undefined) {
+          breakdown[code] += amt;
+        } else {
+          breakdown.altre = (breakdown.altre || 0) + amt;
         }
-        if (e.category_code === "trasporto") totalShipments += (parseInt(e.shipment_count, 10) || 1);
-        if (e.category_code === "imballaggio") totalPackagingItems += (parseInt(e.quantity, 10) || 0);
-        if (e.category_code === "magliette") totalShirtsPurchased += (parseInt(e.quantity, 10) || 0);
+        if (code === "trasporto") totalShipments += (parseInt(e.shipment_count, 10) || 1);
+        if (code === "imballaggio") totalPackagingItems += (parseInt(e.quantity, 10) || 0);
+        if (code === "magliette") totalShirtsPurchased += (parseInt(e.quantity, 10) || 0);
       });
 
       const avgUnitCost = totalShirtsPurchased > 0 ? (breakdown.magliette / totalShirtsPurchased) : 0.0;
@@ -798,10 +827,10 @@
         summary: {
           total_amount: Math.round(total * 100) / 100,
           by_category: {
+            magliette: Math.round(breakdown.magliette * 100) / 100,
             trasporto: Math.round(breakdown.trasporto * 100) / 100,
             imballaggio: Math.round(breakdown.imballaggio * 100) / 100,
-            prove: Math.round(breakdown.prove * 100) / 100,
-            magliette: Math.round(breakdown.magliette * 100) / 100
+            altre: Math.round(breakdown.altre * 100) / 100
           },
           category_metrics: {
             total_shipments: totalShipments,
@@ -933,7 +962,7 @@
 
       // 3. Current balance & gross margin
       const currentBalance = totalIncomes - totalExpenses;
-      const directProductionCost = (expRes?.breakdown?.magliette || 0) + (expRes?.breakdown?.prove || 0);
+      const directProductionCost = (expRes?.breakdown?.magliette || 0);
       const grossProfit = totalIncomes > 0 ? (totalIncomes - directProductionCost) : -totalExpenses;
       const grossProfitMargin = totalIncomes > 0 ? ((grossProfit / totalIncomes) * 100) : 0;
 
@@ -993,14 +1022,14 @@
       }));
 
       const expensesByCategory = {
-        labels: ["Trasporto", "Imballaggio", "Prove", "Magliette"],
+        labels: ["Magliette", "Trasporto", "Imballaggio", "Altre Spese"],
         values: [
+          expRes?.breakdown?.magliette || 0,
           expRes?.breakdown?.trasporto || 0,
           expRes?.breakdown?.imballaggio || 0,
-          expRes?.breakdown?.prove || 0,
-          expRes?.breakdown?.magliette || 0
+          expRes?.breakdown?.altre || 0
         ],
-        colors: ["#3B7A9E", "#A76B29", "#6E4973", "#1F364D"]
+        colors: ["#1F364D", "#3B7A9E", "#A76B29", "#64748B"]
       };
 
       const kpis = {
@@ -1025,10 +1054,10 @@
           count: incRes?.count || 0
         },
         expenses_breakdown: {
+          magliette: expRes?.breakdown?.magliette || 0,
           trasporto: expRes?.breakdown?.trasporto || 0,
           imballaggio: expRes?.breakdown?.imballaggio || 0,
-          prove: expRes?.breakdown?.prove || 0,
-          magliette: expRes?.breakdown?.magliette || 0,
+          altre: expRes?.breakdown?.altre || 0,
           count: expRes?.count || 0
         }
       };

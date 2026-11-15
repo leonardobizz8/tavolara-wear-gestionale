@@ -11,7 +11,7 @@ import io
 from datetime import datetime, timezone, timedelta
 from database import get_db
 
-VALID_EXPENSE_CATEGORIES = ["trasporto", "imballaggio", "prove", "magliette"]
+VALID_EXPENSE_CATEGORIES = ["magliette", "trasporto", "imballaggio", "altre", "prove"]
 VALID_INCOME_STATUSES = ["Confermata", "In attesa", "Incassata"]
 SIZES_ORDER = ["S", "M", "L", "XL", "XXL", "3XL"]
 
@@ -110,8 +110,9 @@ def get_overview_data(period="all", start_date=None, end_date=None):
             COALESCE(SUM(amount), 0.0) as total,
             COALESCE(SUM(CASE WHEN category = 'trasporto' THEN amount ELSE 0.0 END), 0.0) as trasporto,
             COALESCE(SUM(CASE WHEN category = 'imballaggio' THEN amount ELSE 0.0 END), 0.0) as imballaggio,
-            COALESCE(SUM(CASE WHEN category = 'prove' THEN amount ELSE 0.0 END), 0.0) as prove,
             COALESCE(SUM(CASE WHEN category = 'magliette' THEN amount ELSE 0.0 END), 0.0) as magliette,
+            COALESCE(SUM(CASE WHEN category = 'altre' THEN amount ELSE 0.0 END), 0.0) as altre,
+            COALESCE(SUM(CASE WHEN category = 'prove' THEN amount ELSE 0.0 END), 0.0) as prove,
             COUNT(*) as count
         FROM expenses
         {date_where_exp}
@@ -120,8 +121,9 @@ def get_overview_data(period="all", start_date=None, end_date=None):
     total_expenses = float(exp_row["total"])
     exp_trasporto = float(exp_row["trasporto"])
     exp_imballaggio = float(exp_row["imballaggio"])
-    exp_prove = float(exp_row["prove"])
     exp_magliette = float(exp_row["magliette"])
+    exp_altre = float(exp_row["altre"])
+    exp_prove = float(exp_row["prove"])
     expenses_count = int(exp_row["count"])
 
     # Orders & Shirts sold
@@ -269,10 +271,11 @@ def get_overview_data(period="all", start_date=None, end_date=None):
                 "count": incomes_count
             },
             "expenses_breakdown": {
+                "magliette": round(exp_magliette, 2),
                 "trasporto": round(exp_trasporto, 2),
                 "imballaggio": round(exp_imballaggio, 2),
+                "altre": round(exp_altre, 2),
                 "prove": round(exp_prove, 2),
-                "magliette": round(exp_magliette, 2),
                 "count": expenses_count
             }
         },
@@ -280,9 +283,9 @@ def get_overview_data(period="all", start_date=None, end_date=None):
             "cashflow_timeline": cashflow_timeline,
             "balance_timeline": balance_timeline,
             "expenses_by_category": {
-                "labels": ["Trasporto", "Imballaggio", "Prove", "Magliette"],
-                "values": [round(exp_trasporto, 2), round(exp_imballaggio, 2), round(exp_prove, 2), round(exp_magliette, 2)],
-                "colors": ["#0284C7", "#F59E0B", "#8B5CF6", "#0B2545"]
+                "labels": ["Magliette", "Trasporto", "Imballaggio", "Altre Spese"],
+                "values": [round(exp_magliette, 2), round(exp_trasporto, 2), round(exp_imballaggio, 2), round(exp_altre, 2)],
+                "colors": ["#1B365D", "#0284C7", "#F59E0B", "#64748B"]
             },
             "sales_timeline": sales_timeline
         }
@@ -542,7 +545,10 @@ def get_incomes(search=None, status=None, sort_by="date", order="desc", period="
     }
     col = allowed_sorts.get(sort_by, "date")
     direction = "ASC" if str(order).lower() == "asc" else "DESC"
-    sql += f" ORDER BY {col} {direction}, id DESC"
+    if col == "date":
+        sql += f" ORDER BY date {direction}, created_at {direction}, id {direction}"
+    else:
+        sql += f" ORDER BY {col} {direction}, id DESC"
 
     rows = conn.execute(sql, params).fetchall()
     incomes = [dict(r) for r in rows]
@@ -792,7 +798,10 @@ def get_expenses(category="all", search=None, sort_by="date", order="desc", peri
     }
     col = allowed_sorts.get(sort_by, "date")
     direction = "ASC" if str(order).lower() == "asc" else "DESC"
-    sql += f" ORDER BY {col} {direction}, id DESC"
+    if col == "date":
+        sql += f" ORDER BY date {direction}, created_at {direction}, id {direction}"
+    else:
+        sql += f" ORDER BY {col} {direction}, id DESC"
 
     rows = conn.execute(sql, params).fetchall()
     expenses = [dict(r) for r in rows]
@@ -801,10 +810,11 @@ def get_expenses(category="all", search=None, sort_by="date", order="desc", peri
 
     # Category summaries
     by_category = {
+        "magliette": round(sum(e["amount"] for e in expenses if e["category"] == "magliette"), 2),
         "trasporto": round(sum(e["amount"] for e in expenses if e["category"] == "trasporto"), 2),
         "imballaggio": round(sum(e["amount"] for e in expenses if e["category"] == "imballaggio"), 2),
+        "altre": round(sum(e["amount"] for e in expenses if e["category"] == "altre"), 2),
         "prove": round(sum(e["amount"] for e in expenses if e["category"] == "prove"), 2),
-        "magliette": round(sum(e["amount"] for e in expenses if e["category"] == "magliette"), 2),
     }
 
     # Category specific metrics

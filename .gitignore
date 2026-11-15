@@ -31,3 +31,4 @@ Thumbs.db
 .agents/
 scripts/chunk*.sql
 scripts/supabase_migration_payload.sql
+*.log

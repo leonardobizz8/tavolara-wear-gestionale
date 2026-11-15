@@ -295,7 +295,7 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                     sql += " AND created_at <= ?"
                     params.append(query["date_to"][0] + "T23:59:59")
 
-                sql += " ORDER BY id DESC"
+                sql += " ORDER BY created_at DESC, id DESC"
                 orders = conn.execute(sql, params).fetchall()
 
                 # Attach items
@@ -876,6 +876,22 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                             SET usage_count = usage_count + 1, updated_at = ?
                             WHERE code = ?
                         """, (now_iso, applied_code))
+
+                    # Automatically create matching income row (Entrata)
+                    conn.execute("""
+                        INSERT INTO incomes (
+                            description, amount, date, payment_method, order_reference, order_id, status, notes, created_at, updated_at
+                        ) VALUES (?, ?, ?, 'Bonifico bancario', ?, ?, 'In attesa', ?, ?, ?)
+                    """, (
+                        f"Ordine #{order_number} — {first_name} {last_name}",
+                        total_amount,
+                        now_iso[:10],
+                        order_number,
+                        order_id,
+                        f"Ordine online automatico. Consegna: {delivery_method}",
+                        now_iso,
+                        now_iso
+                    ))
 
             except Exception as e:
                 conn.close()

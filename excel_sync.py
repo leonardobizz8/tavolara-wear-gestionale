@@ -27,6 +27,24 @@ def safe_float(v, default=0.0):
     except Exception:
         return default
 
+def normalize_date_str(val, default_date=None):
+    if not default_date:
+        default_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if not val:
+        return default_date
+    if isinstance(val, datetime):
+        return val.strftime("%Y-%m-%d")
+    s = str(val).strip()
+    m = re.match(r"^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$", s)
+    if m:
+        day, month, year = m.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}"
+    m2 = re.match(r"^(\d{4})[/.-](\d{1,2})[/.-](\d{1,2})", s)
+    if m2:
+        year, month, day = m2.groups()
+        return f"{year}-{int(month):02d}-{int(day):02d}"
+    return s[:10] if len(s) >= 10 else default_date
+
 def read_supabase_env():
     """Safely reads Supabase credentials from local .env."""
     env_file = os.path.join(os.path.dirname(__file__), ".env")
@@ -450,11 +468,8 @@ def sync_excel_to_db(excel_path=None, force=False):
                 continue
             consecutive_empty = 0
             num = safe_int(r[0], len(parsed_orders) + 1)
-            date_val = r[1] if len(r) > 1 and r[1] is not None else "2026-11-14"
-            if isinstance(date_val, datetime):
-                date_str = date_val.strftime("%Y-%m-%d")
-            else:
-                date_str = str(date_val)[:10] if date_val else "2026-11-14"
+            date_val = r[1] if len(r) > 1 and r[1] is not None else None
+            date_str = normalize_date_str(date_val, default_date="2026-11-14" if num <= 59 else None)
 
             cliente_clean = " ".join([w.capitalize() for w in cliente_raw.split()])
             telefono = str(r[3]).strip() if len(r) > 3 and r[3] is not None else ""
