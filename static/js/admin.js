@@ -196,6 +196,17 @@ async function checkAuth() {
   state.authenticated = true;
   document.getElementById("login-overlay").style.display = "none";
   document.getElementById("admin-app").style.display = "flex";
+
+  // Ensure Supabase admin session is active in background
+  if (window.TavolaraSupabase) {
+    window.TavolaraSupabase.init().then(async () => {
+      const sess = await window.TavolaraSupabase.getSession();
+      if (!sess) {
+        window.TavolaraSupabase.adminLogin("tavolara2026").catch(() => {});
+      }
+    }).catch(() => {});
+  }
+
   loadInitialData();
 
   // Background verification (silent, never logs out on network glitch or offline)
@@ -828,17 +839,24 @@ function renderIncomesTable(incomes) {
   incomes.forEach(inc => {
     const tr = document.createElement("tr");
 
-    // Status pill class
-    let pillClass = "confermata";
-    if (inc.status === "Incassata") pillClass = "incassata";
-    else if (inc.status === "In attesa") pillClass = "in-attesa";
+    // Status select inline
+    const isInc = inc.status === "Incassata";
+    const isConf = inc.status === "Confermata";
+    const statusBg = isInc ? "rgba(5, 150, 105, 0.12)" : (isConf ? "rgba(30, 58, 138, 0.12)" : "rgba(217, 119, 6, 0.12)");
+    const statusColor = isInc ? "#059669" : (isConf ? "#1e3a8a" : "#d97706");
 
     tr.innerHTML = `
       <td>${formatDate(inc.date)}</td>
       <td class="fw-bold">${escapeHtml(inc.description)}</td>
       <td>${inc.order_reference ? `<span class="kpi-badge" style="background: rgba(2, 132, 199, 0.1); color: #0284c7;">${escapeHtml(inc.order_reference)}</span>` : "—"}</td>
       <td><span style="font-size: 12.5px;">${escapeHtml(inc.payment_method)}</span></td>
-      <td><span class="status-pill ${pillClass}">${escapeHtml(inc.status)}</span></td>
+      <td>
+        <select class="income-status-select" data-id="${inc.id}" style="font-size: 11px; padding: 2px 6px; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid var(--border-dark); background: ${statusBg}; color: ${statusColor};">
+          <option value="Incassata" ${isInc ? "selected" : ""}>● Incassata (Effettivo)</option>
+          <option value="In attesa" ${(!isInc && !isConf) ? "selected" : ""}>● In attesa</option>
+          <option value="Confermata" ${isConf ? "selected" : ""}>● Confermata</option>
+        </select>
+      </td>
       <td style="text-align: right;" class="fw-bold" style="color: var(--emerald);">${formatEuro(inc.amount)}</td>
       <td style="font-size: 12px; color: var(--text-muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(inc.notes || '')}">
         ${escapeHtml(inc.notes || "—")}
@@ -853,6 +871,26 @@ function renderIncomesTable(incomes) {
       </td>
     `;
     tbody.appendChild(tr);
+  });
+
+  // Attach status change events
+  tbody.querySelectorAll(".income-status-select").forEach(sel => {
+    sel.addEventListener("change", async () => {
+      const newStatus = sel.value;
+      const incId = sel.dataset.id;
+      try {
+        if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+          await window.TavolaraSupabase.updateIncome(incId, { status: newStatus });
+        }
+        await apiRequest(`/api/admin/incomes/${incId}`, "PUT", { status: newStatus }).catch(() => {});
+        showToast(`Stato movimento #${incId} aggiornato a '${newStatus}'`);
+        await loadIncomes();
+        await loadOverview();
+        await loadSociProfit();
+      } catch (err) {
+        showToast("Errore aggiornamento: " + err.message, "error");
+      }
+    });
   });
 
   // Attach table events
@@ -976,59 +1014,147 @@ async function deleteIncome(id) {
 async function openSyncOrdersModal() {
   const modal = document.getElementById("modal-sync-orders");
   const tbody = document.getElementById("sync-orders-tbody");
-  tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px;">Caricamento ordini in corso...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px;">Caricamento ordini in corso...</td></tr>`;
   modal.classList.add("active");
 
   try {
-    const res = await apiRequest("/api/admin/orders");
-    const orders = res.orders || [];
+    let orders = [];
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      try {
+        const sbRes = await window.TavolaraSupabase.getOrders();
+        orders = sbRes?.orders || [];
+      } catch (e) {
+        console.warn("[Admin] Supabase getOrders error, fallback:", e);
+      }
+    }
+    if (!orders || orders.length === 0) {
+      const res = await apiRequest("/api/admin/orders");
+      orders = res.orders || [];
+    }
 
-    // Filter orders that have verified payments or shipped
+    // Also get current incomes to see live sync status
+    let incomesList = [];
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      try {
+        const sbInc = await window.TavolaraSupabase.getIncomes({ status: "all" });
+        incomesList = sbInc?.incomes || [];
+      } catch (e) {}
+    }
+    if (!incomesList || incomesList.length === 0) {
+      const resInc = await apiRequest("/api/admin/incomes?period=all&status=all").catch(() => null);
+      incomesList = resInc?.incomes || [];
+    }
+
+    const incMap = {};
+    (incomesList || []).forEach(inc => {
+      if (inc.order_id) incMap[inc.order_id] = inc;
+      if (inc.reference) incMap[inc.reference] = inc;
+      if (inc.order_reference) incMap[inc.order_reference] = inc;
+    });
+
+    // Filter non-cancelled orders
     const syncable = orders.filter(o => o.status !== "Annullato");
 
+    const countInfo = document.getElementById("sync-modal-count-info");
+    if (countInfo) {
+      const totalAmount = syncable.reduce((s, o) => s + parseFloat(o.total_amount || 0), 0);
+      const incassatiCount = syncable.filter(o => {
+        const inc = incMap[o.id] || incMap[o.order_number];
+        return inc && inc.status === "Incassata";
+      }).length;
+      countInfo.textContent = `${syncable.length} ordini (${formatEuro(totalAmount)}) · ${incassatiCount} già incassati`;
+    }
+
     if (syncable.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 20px; color: var(--text-muted);">Nessun ordine pronto per la sincronizzazione.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: var(--text-muted);">Nessun ordine pronto per la sincronizzazione.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = "";
     syncable.forEach(ord => {
       const tr = document.createElement("tr");
+      const linkedInc = incMap[ord.id] || incMap[ord.order_number];
+      const attivoStatus = linkedInc ? linkedInc.status : "Non registrato";
+      const isIncassata = attivoStatus === "Incassata";
+      const isConfermata = attivoStatus === "Confermata";
+
+      let attivoBadgeClass = "in-attesa";
+      if (isIncassata) attivoBadgeClass = "incassata";
+      else if (isConfermata) attivoBadgeClass = "confermata";
+
       tr.innerHTML = `
         <td class="fw-bold">#${escapeHtml(ord.order_number)}</td>
         <td>${escapeHtml(ord.customer_first_name)} ${escapeHtml(ord.customer_last_name)}</td>
         <td class="fw-bold">${formatEuro(ord.total_amount)}</td>
-        <td><span class="status-pill confermata">${escapeHtml(ord.status)}</span></td>
-        <td style="text-align: right;">
-          <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm btn-sync-single" data-order-id="${ord.id}">
-            + Sincronizza
-          </button>
+        <td><span class="status-pill confermata" style="font-size: 11px;">${escapeHtml(ord.status || 'Ricevuto')}</span></td>
+        <td><span class="status-pill ${attivoBadgeClass}" style="font-size: 11px;">${escapeHtml(attivoStatus)}</span></td>
+        <td style="text-align: right; white-space: nowrap;">
+          ${isIncassata ? `
+            <span style="display: inline-flex; align-items: center; gap: 4px; color: #059669; font-weight: 700; font-size: 11.5px; margin-right: 6px;">
+              ✓ Incassato
+            </span>
+            <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm btn-quick-set-status" data-order-id="${ord.id}" data-status="In attesa" title="Imposta come In attesa">
+              ⏳ In attesa
+            </button>
+          ` : `
+            <button type="button" class="apple-btn apple-btn-emerald apple-btn-sm btn-quick-set-status" data-order-id="${ord.id}" data-status="Incassata" title="Registra come effettivamente incassato nell'Attivo">
+              ⚡ Incassa
+            </button>
+            <button type="button" class="apple-btn apple-btn-secondary apple-btn-sm btn-quick-set-status" data-order-id="${ord.id}" data-status="Confermata" title="Segna come confermato" style="margin-left: 4px;">
+              ✓ Conferma
+            </button>
+          `}
         </td>
       `;
       tbody.appendChild(tr);
     });
 
-    tbody.querySelectorAll(".btn-sync-single").forEach(btn => {
+    tbody.querySelectorAll(".btn-quick-set-status").forEach(btn => {
       btn.addEventListener("click", async () => {
         const orderId = btn.dataset.orderId;
+        const targetSt = btn.dataset.status;
         try {
           btn.disabled = true;
-          btn.textContent = "Sincronizzo...";
-          await apiRequest(`/api/admin/incomes/sync-order/${orderId}`, "POST");
-          showToast(`Ordine #${orderId} sincronizzato nell'Attivo`);
-          btn.textContent = "✓ Sincronizzato";
-          loadIncomes();
-          loadOverview();
+          btn.textContent = "...";
+          if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+            await window.TavolaraSupabase.syncOrderToIncome(orderId, targetSt);
+          }
+          await apiRequest(`/api/admin/incomes/sync-order/${orderId}`, "POST", { status: targetSt }).catch(() => {});
+          showToast(`Ordine #${orderId} impostato su '${targetSt}' nell'Attivo!`);
+          await loadIncomes();
+          await loadOverview();
+          await loadOrders();
+          openSyncOrdersModal();
         } catch (err) {
-          showToast(err.message, "error");
+          showToast("Errore: " + err.message, "error");
           btn.disabled = false;
-          btn.textContent = "+ Sincronizza";
         }
       });
     });
 
   } catch (err) {
     showToast("Errore caricamento ordini: " + err.message, "error");
+  }
+}
+
+async function executeBulkOrdersSync(targetStatus = "Incassata") {
+  try {
+    showToast(`Sincronizzazione in corso...`);
+    if (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()) {
+      await window.TavolaraSupabase.syncAllOrdersToIncomes(targetStatus);
+    }
+    await apiRequest("/api/admin/incomes/sync-all", "POST", { status: targetStatus }).catch(() => {});
+    showToast(`✓ Tutti gli ordini registrati come '${targetStatus}' nell'Attivo!`, "success");
+    await loadIncomes();
+    await loadOverview();
+    await loadSociProfit();
+    await loadOrders();
+    const modal = document.getElementById("modal-sync-orders");
+    if (modal && modal.classList.contains("active")) {
+      openSyncOrdersModal();
+    }
+  } catch (err) {
+    showToast("Errore sincronizzazione: " + err.message, "error");
   }
 }
 
@@ -2584,25 +2710,25 @@ function setupPeriodicRefresh() {
   if (_periodicRefreshStarted) return;
   _periodicRefreshStarted = true;
 
-  // Auto-sync e verifica periodica ogni 10 secondi
+  // Auto-sync e aggiornamento periodico continuo ogni 10 secondi
   setInterval(async () => {
-    if (state.token || (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured())) {
-      const prevRows = state.excelStatus?.orders_count;
-      const prevRev = state.excelStatus?.total_revenue;
-      const prevLast = state.excelStatus?.last_synced;
-      await loadExcelStatus();
-      if (state.excelStatus && (state.excelStatus.orders_count !== prevRows || state.excelStatus.total_revenue !== prevRev || state.excelStatus.last_synced !== prevLast)) {
-        refreshCurrentView();
-      }
+    if (!document.hidden && (state.token || (window.TavolaraSupabase && window.TavolaraSupabase.isConfigured()))) {
+      await loadExcelStatus().catch(() => {});
+      refreshCurrentView();
     }
   }, 10000);
 
-  // Ricarica automatica al ritorno sulla scheda
+  // Ricarica immediata automatica al ritorno sulla scheda
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
-      loadExcelStatus();
+      loadExcelStatus().catch(() => {});
       refreshCurrentView();
     }
+  });
+
+  window.addEventListener("focus", () => {
+    loadExcelStatus().catch(() => {});
+    refreshCurrentView();
   });
 }
 
@@ -2842,6 +2968,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 7. Incomes View Buttons
   document.getElementById("btn-add-income")?.addEventListener("click", () => openIncomeModal());
   document.getElementById("btn-sync-orders-income")?.addEventListener("click", openSyncOrdersModal);
+  document.getElementById("btn-quick-collect-all")?.addEventListener("click", () => executeBulkOrdersSync("Incassata"));
+  document.getElementById("btn-sync-all-incassati")?.addEventListener("click", () => executeBulkOrdersSync("Incassata"));
+  document.getElementById("btn-sync-all-confermati")?.addEventListener("click", () => executeBulkOrdersSync("Confermata"));
   document.getElementById("form-income")?.addEventListener("submit", saveIncome);
 
   document.querySelectorAll("#incomes-status-filter .segment-item").forEach(btn => {

@@ -420,9 +420,12 @@
 
       if (error) throw error;
 
-      // If status changed to Ordine pagato, record transaction in Attivo if not existing
-      if (paymentStatus === "pagato") {
-        await this.syncOrderToIncome(orderId);
+      // Bidirectional sync with transactions in Attivo
+      const txStatus = (newStatus === "Ordine pagato" || newStatus === "Pagamento verificato") ? "Incassata" : (newStatus === "Ordine confermato" ? "Confermata" : "In attesa");
+      try {
+        await this.syncOrderToIncome(orderId, txStatus);
+      } catch (e) {
+        console.warn("[Tavolara Supabase] syncOrderToIncome notice:", e);
       }
 
       return data;
@@ -535,6 +538,19 @@
         .single();
 
       if (error) throw error;
+
+      // Bidirectional sync with order if linked
+      if (payload.status && data && data.order_id) {
+        const ordStatus = payload.status === "Incassata" ? "Ordine pagato" : (payload.status === "Confermata" ? "Ordine confermato" : "Ordine da pagare");
+        const payStatus = payload.status === "Incassata" ? "pagato" : "da_pagare";
+        this.client
+          .from("orders")
+          .update({ status: ordStatus, payment_status: payStatus, updated_at: new Date().toISOString() })
+          .eq("id", data.order_id)
+          .then(() => {})
+          .catch(() => {});
+      }
+
       return { income: data };
     },
 
@@ -547,49 +563,137 @@
       return { success: true };
     },
 
-    async syncOrderToIncome(orderId) {
+    async syncOrderToIncome(orderId, targetStatus = "Incassata") {
       await this.init();
       if (!this.isConfigured()) return null;
 
-      // Check if already synced
-      const { data: existing } = await this.client
-        .from("transactions")
-        .select("id")
-        .eq("order_id", orderId)
-        .maybeSingle();
-
-      if (existing) {
-        return { success: true, message: "Ordine già registrato nelle entrate", id: existing.id };
-      }
+      const ordIdNum = parseInt(orderId, 10);
 
       // Fetch order
       const { data: ord, error: ordErr } = await this.client
         .from("orders")
         .select("*")
-        .eq("id", orderId)
+        .eq("id", ordIdNum)
         .single();
 
       if (ordErr || !ord) throw new Error("Ordine non trovato");
 
-      const incomePayload = {
-        description: `Ordine #${ord.order_number} — ${ord.customer_first_name} ${ord.customer_last_name}`,
-        amount: ord.total_amount,
-        date: ord.created_at.slice(0, 10),
-        payment_method: "Bonifico bancario",
-        reference: ord.order_number,
-        order_id: ord.id,
-        status: (ord.status === "Ordine pagato" || ord.status === "Pagamento verificato") ? "Incassata" : "Confermata",
-        notes: `Sincronizzato da modulo ordini. Consegna: ${ord.delivery_method}`
-      };
+      const nowIso = new Date().toISOString();
+      const ordStatus = targetStatus === "Incassata" ? "Ordine pagato" : (targetStatus === "Confermata" ? "Ordine confermato" : "Ordine da pagare");
+      const payStatus = targetStatus === "Incassata" ? "pagato" : "da_pagare";
 
-      const { data: newInc, error: incErr } = await this.client
+      // Check if already in transactions
+      const { data: existing } = await this.client
         .from("transactions")
-        .insert(incomePayload)
-        .select()
-        .single();
+        .select("id")
+        .eq("order_id", ordIdNum)
+        .maybeSingle();
 
-      if (incErr) throw incErr;
-      return { success: true, income: newInc };
+      let incResult;
+      if (existing) {
+        const { data: updated, error: upErr } = await this.client
+          .from("transactions")
+          .update({
+            status: targetStatus,
+            amount: ord.total_amount,
+            updated_at: nowIso
+          })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (upErr) throw upErr;
+        incResult = updated;
+      } else {
+        const incomePayload = {
+          description: `Ordine #${ord.order_number} — ${ord.customer_first_name} ${ord.customer_last_name}`,
+          amount: ord.total_amount,
+          date: (ord.created_at || nowIso).slice(0, 10),
+          payment_method: "Bonifico bancario",
+          reference: ord.order_number,
+          order_id: ord.id,
+          status: targetStatus,
+          notes: `Sincronizzato da modulo ordini. Consegna: ${ord.delivery_method || 'a mano'}`
+        };
+
+        const { data: newInc, error: incErr } = await this.client
+          .from("transactions")
+          .insert(incomePayload)
+          .select()
+          .single();
+        if (incErr) throw incErr;
+        incResult = newInc;
+      }
+
+      // Synchronize order status
+      await this.client
+        .from("orders")
+        .update({
+          status: ordStatus,
+          payment_status: payStatus,
+          updated_at: nowIso
+        })
+        .eq("id", ordIdNum);
+
+      return { success: true, message: `Ordine sincronizzato con stato '${targetStatus}'`, income: incResult };
+    },
+
+    async syncAllOrdersToIncomes(targetStatus = "Incassata") {
+      await this.init();
+      if (!this.isConfigured()) return null;
+
+      const { data: orders, error: ordErr } = await this.client
+        .from("orders")
+        .select("*")
+        .neq("status", "Annullato");
+      if (ordErr) throw ordErr;
+
+      const { data: txs, error: txErr } = await this.client
+        .from("transactions")
+        .select("id, order_id");
+      if (txErr) throw txErr;
+
+      const txMap = {};
+      (txs || []).forEach(t => { if (t.order_id) txMap[t.order_id] = t.id; });
+
+      const nowIso = new Date().toISOString();
+      const ordStatus = targetStatus === "Incassata" ? "Ordine pagato" : (targetStatus === "Confermata" ? "Ordine confermato" : "Ordine da pagare");
+      const payStatus = targetStatus === "Incassata" ? "pagato" : "da_pagare";
+
+      // 1. Bulk update existing transactions
+      const existingIds = (orders || []).filter(o => txMap[o.id]).map(o => txMap[o.id]);
+      if (existingIds.length > 0) {
+        await this.client
+          .from("transactions")
+          .update({ status: targetStatus, updated_at: nowIso })
+          .in("id", existingIds);
+      }
+
+      // 2. Insert missing transactions
+      const missingOrders = (orders || []).filter(o => !txMap[o.id]);
+      if (missingOrders.length > 0) {
+        const toInsert = missingOrders.map(ord => ({
+          description: `Ordine #${ord.order_number} — ${ord.customer_first_name} ${ord.customer_last_name}`,
+          amount: ord.total_amount,
+          date: (ord.created_at || nowIso).slice(0, 10),
+          payment_method: "Bonifico bancario",
+          reference: ord.order_number,
+          order_id: ord.id,
+          status: targetStatus,
+          notes: `Sincronizzato da modulo ordini. Consegna: ${ord.delivery_method || 'a mano'}`
+        }));
+        await this.client.from("transactions").insert(toInsert);
+      }
+
+      // 3. Update orders status
+      const orderIds = (orders || []).map(o => o.id);
+      if (orderIds.length > 0) {
+        await this.client
+          .from("orders")
+          .update({ status: ordStatus, payment_status: payStatus, updated_at: nowIso })
+          .in("id", orderIds);
+      }
+
+      return { success: true, count: orders.length, status: targetStatus };
     },
 
     // -------------------------------------------------------------------------

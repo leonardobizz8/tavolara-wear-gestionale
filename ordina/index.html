@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tavolara Wear | Ordina la tua T-shirt</title>
+  <meta name="description" content="Sistema ufficiale di raccolta ordini per le T-shirt Tavolara Wear. Scegli variante, taglia e modalità di consegna.">
+  <meta name="theme-color" content="#003760">
+  
+  <link rel="icon" href="assets/favicon-48.png" sizes="48x48">
+  <link rel="icon" href="assets/favicon-192.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="scene-background" aria-hidden="true"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="app-header">
+      <a href="https://tavolarawear.it/" class="brand-link" title="Tavolara Wear — Sito Ufficiale">
+        <span class="brand-signature" aria-label="Tavolara Wear"></span>
+      </a>
+      <span class="header-tag">Modulo Ordini</span>
+    </header>
+
+    <!-- Main Order Application Container -->
+    <main id="app-root">
+      
+      <!-- Stepper Navigation -->
+      <nav class="stepper-bar" id="stepper-nav" aria-label="Passaggi dell'ordine">
+        <div class="stepper-track"></div>
+        <div class="stepper-progress" id="stepper-progress" style="width: 0%;"></div>
+        
+        <button type="button" class="step-node active" data-step="1" id="step-btn-1">
+          <span class="step-circle">1</span>
+          <span class="step-label">Prodotto</span>
+        </button>
+        <button type="button" class="step-node" data-step="2" id="step-btn-2">
+          <span class="step-circle">2</span>
+          <span class="step-label">Consegna</span>
+        </button>
+        <button type="button" class="step-node" data-step="3" id="step-btn-3">
+          <span class="step-circle">3</span>
+          <span class="step-label">Riepilogo</span>
+        </button>
+      </nav>
+
+      <!-- Price Not Configured Alert (shown if admin hasn't set prices yet) -->
+      <div id="unconfigured-alert" class="alert-box alert-warning" style="display: none;">
+        <strong>Configurazione prezzi in corso:</strong> Il prezzo ufficiale delle T-shirt e le tariffe di spedizione sono attualmente in fase di definizione da parte del team Tavolara Wear. Puoi esplorare i modelli, ma l'invio dell'ordine sarà abilitato a breve.
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- STEP 1: PRODUCT SELECTION -->
+      <!-- ============================================================== -->
+      <section id="step-1" class="order-step-section">
+        <div class="card-panel">
+          <div class="card-title-group">
+            <span class="eyebrow">Edizione Ufficiale</span>
+            <h1 class="card-title">T-shirt Tavolara Wear</h1>
+            <p class="card-subtitle">100% cotone pettinato · 185 g/m² · Taglio regular con stampa serigrafica d'autore</p>
+          </div>
+
+          <!-- Product Visual Showcase -->
+          <div class="product-hero">
+            <div class="product-image-container">
+              <img id="product-view-img" class="product-main-img" src="assets/gallery/navy-front-v3.webp" alt="T-shirt Tavolara Wear Blu Navy - Davanti">
+            </div>
+            <div class="view-angle-bar">
+              <button type="button" class="angle-btn active" data-angle="front" id="angle-front-btn">Davanti</button>
+              <button type="button" class="angle-btn" data-angle="back" id="angle-back-btn">Retro (Isola)</button>
+            </div>
+          </div>
+
+          <div class="specs-pills">
+            <span>✓ 100% Cotone Premium</span>
+            <span>✓ Firma al cuore</span>
+            <span>✓ Coordinate sulla manica</span>
+            <span>✓ Quattro Mori sul retro</span>
+          </div>
+
+          <!-- Color Selector -->
+          <div class="form-group">
+            <label class="form-label">Scegli il colore</label>
+            <div class="color-selector" role="radiogroup" aria-label="Colore t-shirt">
+              <div class="color-card active" data-color="navy" tabindex="0" role="radio" aria-checked="true">
+                <span class="color-swatch navy"></span>
+                <div class="color-info">
+                  <strong>Blu navy</strong>
+                  <small>Stampa bianco ghiaccio</small>
+                </div>
+              </div>
+              <div class="color-card" data-color="white" tabindex="0" role="radio" aria-checked="false">
+                <span class="color-swatch white"></span>
+                <div class="color-info">
+                  <strong>Bianca</strong>
+                  <small>Stampa blu ufficiale</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Size Selector -->
+          <div class="form-group">
+            <div class="sizes-header">
+              <label class="form-label">Scegli la taglia</label>
+              <button type="button" class="btn-link" id="open-size-modal">Guida alle taglie</button>
+            </div>
+            <div class="sizes-grid" id="sizes-container" role="radiogroup" aria-label="Taglie disponibili">
+              <!-- Rendered dynamically with stock availability -->
+              <div class="size-pill" data-size="S"><strong>S</strong></div>
+              <div class="size-pill active" data-size="M"><strong>M</strong></div>
+              <div class="size-pill" data-size="L"><strong>L</strong></div>
+              <div class="size-pill" data-size="XL"><strong>XL</strong></div>
+              <div class="size-pill" data-size="XXL"><strong>XXL</strong></div>
+              <div class="size-pill" data-size="XXXL"><strong>3XL</strong></div>
+            </div>
+          </div>
+
+          <!-- Quantity Selector -->
+          <div class="qty-row">
+            <div>
+              <span class="form-label" style="margin: 0;">Quantità</span>
+              <small class="input-helper" id="unit-price-display">Prezzo unitario: -- €</small>
+            </div>
+            <div class="qty-controls">
+              <button type="button" class="qty-btn" id="qty-minus" aria-label="Riduci quantità" disabled>−</button>
+              <span class="qty-number" id="qty-value">1</span>
+              <button type="button" class="qty-btn" id="qty-plus" aria-label="Aumenta quantità">+</button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-primary" id="go-to-step-2">
+            Continua con la Spedizione →
+          </button>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- STEP 2: CUSTOMER DATA & DELIVERY METHOD -->
+      <!-- ============================================================== -->
+      <section id="step-2" class="order-step-section" style="display: none;">
+        <div class="card-panel">
+          <div class="card-title-group">
+            <span class="eyebrow">I tuoi recapiti</span>
+            <h2 class="card-title">Dati di contatto e spedizione</h2>
+            <p class="card-subtitle">Inserisci le informazioni per ricevere l'ordine e il riepilogo del bonifico.</p>
+          </div>
+
+          <!-- Customer Info -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="cust-name">Nome *</label>
+              <input type="text" id="cust-name" class="form-input" placeholder="es. Mario" required autocomplete="given-name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cust-surname">Cognome *</label>
+              <input type="text" id="cust-surname" class="form-input" placeholder="es. Rossi" required autocomplete="family-name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cust-email">Email *</label>
+              <input type="email" id="cust-email" class="form-input" placeholder="mario.rossi@email.it" required autocomplete="email">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cust-phone">Numero di telefono *</label>
+              <input type="tel" id="cust-phone" class="form-input" placeholder="+39 340 123 4567" required autocomplete="tel">
+            </div>
+          </div>
+
+          <!-- Delivery Mode Options -->
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="form-label">Modalità di consegna *</label>
+            <div class="delivery-options">
+              
+              <!-- Option A: Locker -->
+              <div class="delivery-card active" data-delivery="locker">
+                <div class="delivery-header">
+                  <div class="delivery-title-box">
+                    <input type="radio" name="delivery_choice" id="delivery-opt-locker" class="delivery-radio" value="locker" checked>
+                    <label for="delivery-opt-locker" class="delivery-name">Locker / Punto di ritiro</label>
+                  </div>
+                  <span class="delivery-price-badge" id="price-badge-locker">-- €</span>
+                </div>
+                <p class="delivery-desc">Ritiro comodo e sicuro presso un punto convenzionato o locker (es. InPost, Fermopoint).</p>
+              </div>
+
+              <!-- Option B: Home Shipping -->
+              <div class="delivery-card" data-delivery="home">
+                <div class="delivery-header">
+                  <div class="delivery-title-box">
+                    <input type="radio" name="delivery_choice" id="delivery-opt-home" class="delivery-radio" value="home">
+                    <label for="delivery-opt-home" class="delivery-name">Spedizione a domicilio</label>
+                  </div>
+                  <span class="delivery-price-badge" id="price-badge-home">-- €</span>
+                </div>
+                <p class="delivery-desc">Consegna diretta tramite corriere espresso al tuo indirizzo di casa o ufficio.</p>
+              </div>
+
+              <!-- Option C: Hand Delivery -->
+              <div class="delivery-card" data-delivery="hand">
+                <div class="delivery-header">
+                  <div class="delivery-title-box">
+                    <input type="radio" name="delivery_choice" id="delivery-opt-hand" class="delivery-radio" value="hand">
+                    <label for="delivery-opt-hand" class="delivery-name">Consegna a mano</label>
+                  </div>
+                  <span class="delivery-price-badge" id="price-badge-hand">Su accordo</span>
+                </div>
+                <p class="delivery-desc">Disponibile su richiesta. Da concordare direttamente con il team Tavolara Wear.</p>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Specific Fields for Locker -->
+          <div id="fields-locker" class="delivery-subfields">
+            <div class="form-group">
+              <label class="form-label" for="locker-name">Nome Locker o Punto di Ritiro *</label>
+              <input type="text" id="locker-name" class="form-input" placeholder="es. InPost Locker Carrefour / FermoPoint Edicola" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="locker-address">Indirizzo del punto *</label>
+              <input type="text" id="locker-address" class="form-input" placeholder="Via / Viale e numero civico" required>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="locker-zip">CAP *</label>
+                <input type="text" id="locker-zip" class="form-input" placeholder="es. 07026" maxlength="5" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="locker-city">Località / Città *</label>
+                <input type="text" id="locker-city" class="form-input" placeholder="es. Olbia" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="locker-notes">Eventuali informazioni aggiuntive</label>
+              <input type="text" id="locker-notes" class="form-input" placeholder="es. ID Locker o orari preferiti">
+            </div>
+          </div>
+
+          <!-- Specific Fields for Home Shipping -->
+          <div id="fields-home" class="delivery-subfields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label" for="home-address">Via e Numero Civico *</label>
+              <input type="text" id="home-address" class="form-input" placeholder="es. Via Tavolara 12" required>
+            </div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="home-zip">CAP *</label>
+                <input type="text" id="home-zip" class="form-input" placeholder="es. 07026" maxlength="5" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="home-city">Città *</label>
+                <input type="text" id="home-city" class="form-input" placeholder="es. San Teodoro" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="home-province">Provincia *</label>
+              <input type="text" id="home-province" class="form-input" placeholder="es. SS" maxlength="4" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="home-notes">Note per il corriere</label>
+              <input type="text" id="home-notes" class="form-input" placeholder="es. Scala B, citofono Rossi, lasciare al portinaio">
+            </div>
+          </div>
+
+          <!-- Specific Fields for Hand Delivery -->
+          <div id="fields-hand" class="delivery-subfields" style="display: none;">
+            <div class="alert-box alert-info" style="margin-bottom: 14px;">
+              <strong>Consegna su richiesta:</strong> La consegna a mano avverrà previo accordo diretto con il team Tavolara Wear (tramite WhatsApp o Instagram).
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hand-location">Località proposta per il ritiro *</label>
+              <input type="text" id="hand-location" class="form-input" placeholder="es. Olbia centro, Porto San Paolo, Golfo Aranci..." required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hand-preferences">Eventuali preferenze o disponibilità</label>
+              <input type="text" id="hand-preferences" class="form-input" placeholder="es. Pomeriggio nei weekend, contatemi su WhatsApp...">
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="button" class="btn-secondary" id="back-to-step-1" style="flex: 1;">
+              ← Modifica Prodotto
+            </button>
+            <button type="button" class="btn-primary" id="go-to-step-3" style="flex: 2;">
+              Vai al Riepilogo →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- STEP 3: SUMMARY, DISCOUNT & ORDER CONFIRMATION -->
+      <!-- ============================================================== -->
+      <section id="step-3" class="order-step-section" style="display: none;">
+        <div class="card-panel">
+          <div class="card-title-group">
+            <span class="eyebrow">Verifica finale</span>
+            <h2 class="card-title">Riepilogo Ordine</h2>
+            <p class="card-subtitle">Controlla i dati prima di confermare e visualizzare le coordinate bancarie.</p>
+          </div>
+
+          <!-- Selected Product Summary Card -->
+          <div style="display: flex; align-items: center; gap: 16px; padding: 14px; background: #ffffff; border: 1px solid #dce5eb; border-radius: 14px; margin-bottom: 20px;">
+            <img id="summary-prod-thumb" src="assets/gallery/navy-front-v3.webp" alt="Anteprima T-shirt" style="width: 68px; height: 68px; object-fit: contain; background: #f2f6f8; border-radius: 10px; border: 1px solid #d8e3ea;">
+            <div style="flex: 1;">
+              <strong style="display: block; font-size: 15px; color: var(--color-primary-navy);">T-shirt Tavolara Wear</strong>
+              <span id="summary-prod-details" style="font-size: 13px; color: var(--color-text-muted);">Blu navy · Taglia M · Qtà: 1</span>
+            </div>
+            <strong id="summary-prod-subtotal" style="font-size: 16px; color: var(--color-primary-navy);">-- €</strong>
+          </div>
+
+          <!-- Delivery Mode Summary -->
+          <div style="padding: 12px 14px; background: #ffffff; border: 1px solid #dce5eb; border-radius: 12px; margin-bottom: 20px; font-size: 13px;">
+            <strong style="display: block; color: var(--color-primary-navy); margin-bottom: 4px;" id="summary-delivery-title">Spedizione</strong>
+            <span id="summary-delivery-desc" style="color: var(--color-text-muted);">Indirizzo...</span>
+          </div>
+
+          <!-- Discount Code Input -->
+          <div class="form-group">
+            <label class="form-label" for="discount-code-input">Codice promozionale</label>
+            <div class="discount-row">
+              <input type="text" id="discount-code-input" class="form-input" placeholder="es. TAVOLARA5" style="text-transform: uppercase;">
+              <button type="button" class="btn-discount" id="btn-apply-discount">Applica</button>
+            </div>
+            <div id="discount-feedback" class="discount-feedback"></div>
+          </div>
+
+          <!-- Pricing Breakdown Table -->
+          <div class="pricing-breakdown">
+            <div class="pricing-row">
+              <span>Subtotale prodotti (<span id="calc-qty">1</span>x <span id="calc-unit-price">--</span> €):</span>
+              <strong id="calc-subtotal">-- €</strong>
+            </div>
+            <div class="pricing-row">
+              <span>Costo consegna:</span>
+              <strong id="calc-shipping">-- €</strong>
+            </div>
+            <div class="pricing-row discount-applied" id="row-discount" style="display: none;">
+              <span>Sconto applicato (<span id="applied-discount-code"></span>):</span>
+              <strong id="calc-discount">- 0.00 €</strong>
+            </div>
+            <div class="pricing-row total-row">
+              <span>Totale da pagare:</span>
+              <strong class="total-amount" id="calc-final-total">-- €</strong>
+            </div>
+          </div>
+
+          <!-- Payment Notice: Bank wire only -->
+          <div class="alert-box alert-info">
+            <strong>Modalità di pagamento: Bonifico Bancario</strong><br>
+            Completando l'ordine riceverai le coordinate bancarie (IBAN e causale dedicata). L'ordine sarà preparato dopo la verifica dell'accredito.
+          </div>
+
+          <!-- Privacy Consent Checkbox -->
+          <div class="privacy-box">
+            <label class="checkbox-label">
+              <input type="checkbox" id="privacy-consent" required>
+              <span>Dichiaro di aver preso visione dell'informativa privacy e acconsento al trattamento dei miei dati personali ai sensi del Regolamento UE 2016/679 (GDPR) esclusivamente per la gestione dell'ordine. <a href="https://tavolarawear.it/" target="_blank" rel="noopener noreferrer" style="color: #245775;">Info sul brand</a></span>
+            </label>
+          </div>
+
+          <!-- Actions -->
+          <div style="display: flex; gap: 12px;">
+            <button type="button" class="btn-secondary" id="back-to-step-2" style="flex: 1;">
+              ← Dati Spedizione
+            </button>
+            <button type="button" class="btn-primary" id="btn-submit-order" style="flex: 2;">
+              Conferma Ordine e Procedi al Bonifico
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ============================================================== -->
+      <!-- STEP 4: ORDER CONFIRMATION & BANK WIRE DETAILS -->
+      <!-- ============================================================== -->
+      <section id="step-confirmation" class="order-step-section" style="display: none;">
+        <div class="card-panel">
+          <div style="text-align: center; margin-bottom: 22px;">
+            <div style="width: 58px; height: 58px; border-radius: 50%; background: #e8f5ed; color: #198754; font-size: 28px; display: grid; place-items: center; margin: 0 auto 12px;">
+              ✓
+            </div>
+            <span class="eyebrow" style="color: #198754;">Ordine Ricevuto con Successo</span>
+            <h2 class="card-title" id="conf-order-num">Ordine TVL-26-XXXX</h2>
+            <p class="card-subtitle" style="max-width: 480px; margin: 8px auto 0;">
+              Grazie <strong id="conf-cust-name">Mario</strong>! Abbiamo registrato il tuo ordine. Effettua ora il bonifico bancario per avviare la preparazione del tuo capo.
+            </p>
+          </div>
+
+          <!-- Wire Transfer Dedicated Screen -->
+          <div class="wire-instruction-card">
+            <h3 style="font-family: var(--font-serif); font-size: 18px; color: var(--color-primary-navy); margin-bottom: 14px; border-bottom: 1px solid #edf2f5; padding-bottom: 8px;">
+              Coordinate per il Bonifico Bancario
+            </h3>
+
+            <!-- Amount -->
+            <div class="wire-item">
+              <div>
+                <span class="wire-item-label">Importo Esatto da Bonificare</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="wire-item-value" id="conf-wire-amount" style="font-size: 20px; font-weight: 700; color: #003760;">-- €</span>
+                <button type="button" class="btn-copy" data-copy-target="conf-wire-amount-raw">Copia</button>
+              </div>
+            </div>
+
+            <!-- Holder -->
+            <div class="wire-item">
+              <div>
+                <span class="wire-item-label">Intestatario del Conto</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="wire-item-value" id="conf-wire-holder">Tavolara Srl</span>
+                <button type="button" class="btn-copy" data-copy-target="conf-wire-holder">Copia</button>
+              </div>
+            </div>
+
+            <!-- IBAN -->
+            <div class="wire-item">
+              <div>
+                <span class="wire-item-label">IBAN</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="wire-item-value" id="conf-wire-iban" style="font-family: monospace; font-size: 14px;">IT00...</span>
+                <button type="button" class="btn-copy" data-copy-target="conf-wire-iban">Copia</button>
+              </div>
+            </div>
+
+            <!-- Bank Name -->
+            <div class="wire-item" id="conf-wire-bank-row">
+              <div>
+                <span class="wire-item-label">Banca</span>
+              </div>
+              <div>
+                <span class="wire-item-value" id="conf-wire-bank">Banca Popolare</span>
+              </div>
+            </div>
+
+            <!-- Causale (Generated Format: TAVOLARA WEAR - NOME COGNOME - NUMERO ORDINE) -->
+            <div class="wire-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                <span class="wire-item-label">Causale Obbligatoria</span>
+                <button type="button" class="btn-copy" data-copy-target="conf-wire-causale">Copia Causale</button>
+              </div>
+              <div class="wire-item-value causale-highlight" id="conf-wire-causale" style="max-width: 100%; width: 100%; text-align: left;">
+                TAVOLARA WEAR - NOME COGNOME - TVL-26-XXXX
+              </div>
+            </div>
+          </div>
+
+          <!-- Reassurance Notice -->
+          <div class="alert-box alert-info">
+            <strong>Verifica manuale dell'ordine:</strong> L'ordine non viene contrassegnato automaticamente come pagato. Il nostro team verificherà manualmente l'avvenuto bonifico prima di procedere con la spedizione o la consegna a mano concordata.
+          </div>
+
+          <!-- Order Summary Details -->
+          <div style="background: #ffffff; border: 1px solid #dce5eb; border-radius: 14px; padding: 16px; margin: 18px 0; font-size: 14px;">
+            <strong style="display: block; font-size: 15px; margin-bottom: 10px; color: var(--color-primary-navy);">Dettagli del tuo acquisto</strong>
+            <p><strong>Articolo:</strong> T-shirt Tavolara Wear (<span id="conf-color"></span>, taglia <span id="conf-size"></span>)</p>
+            <p><strong>Quantità:</strong> <span id="conf-qty"></span></p>
+            <p><strong>Consegna:</strong> <span id="conf-delivery"></span></p>
+            <p><strong>Destinatario:</strong> <span id="conf-customer"></span></p>
+            <p><strong>Contatti:</strong> <span id="conf-contacts"></span></p>
+          </div>
+
+          <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button type="button" class="btn-secondary" onclick="window.print();" style="flex: 1;">
+              🖨️ Stampa o Salva PDF
+            </button>
+            <a href="https://tavolarawear.it/" class="btn-primary" style="flex: 1; text-decoration: none;">
+              Torna al Sito Tavolara
+            </a>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>© 2026 Tavolara Wear · Tutti i diritti riservati</p>
+      <p style="font-size: 12px; opacity: 0.85;">
+        T-shirt dedicate all'Isola di Tavolara · <a href="https://tavolarawear.it/" target="_blank" rel="noopener noreferrer">tavolarawear.it</a> · <a href="admin.html">Area Amministrativa</a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- Size Guide Dialog -->
+  <dialog id="size-guide-modal" class="custom-dialog">
+    <div class="dialog-header">
+      <div>
+        <span class="eyebrow">Tabella Misure</span>
+        <h3 style="font-family: var(--font-serif); font-size: 22px; color: var(--color-primary-navy);">Guida alle taglie</h3>
+      </div>
+      <button type="button" class="dialog-close" id="close-size-modal" aria-label="Chiudi guida taglie">&times;</button>
+    </div>
+
+    <p style="font-size: 14px; color: var(--color-text-muted); line-height: 1.5;">
+      Misure del capo disteso, in centimetri. Per confrontare la vestibilità, misura una tua maglietta distesa: larghezza da ascella ad ascella e lunghezza dalla spalla all'orlo.
+    </p>
+
+    <div class="size-table-wrap">
+      <table class="size-table">
+        <thead>
+          <tr>
+            <th>Taglia</th>
+            <th>Larghezza (A)</th>
+            <th>Altezza (B)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>S</strong></td><td>50 cm</td><td>69 cm</td></tr>
+          <tr><td><strong>M</strong></td><td>53 cm</td><td>71 cm</td></tr>
+          <tr><td><strong>L</strong></td><td>56 cm</td><td>73 cm</td></tr>
+          <tr><td><strong>XL</strong></td><td>59 cm</td><td>75 cm</td></tr>
+          <tr><td><strong>XXL (2XL)</strong></td><td>62 cm</td><td>77 cm</td></tr>
+          <tr><td><strong>XXXL (3XL)</strong></td><td>65 cm</td><td>79 cm</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background: #f4f8fb; padding: 12px 14px; border-radius: 12px; font-size: 13px; color: var(--color-text-muted); margin-bottom: 18px;">
+      <strong>Vestibilità:</strong> Regular fit unisex. Tessuto 100% cotone 185 g/m² di alta grammatura, morbido e resistente ai lavaggi.
+    </div>
+
+    <button type="button" class="btn-primary" id="btn-size-done">Ho capito, torna alla scelta</button>
+  </dialog>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast-msg">
+    <span id="toast-text">Messaggio</span>
+  </div>
+
+  <!-- Supabase JS Client Integration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

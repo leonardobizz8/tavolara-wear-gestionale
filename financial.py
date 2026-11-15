@@ -657,49 +657,87 @@ def delete_income(income_id: int):
         raise ValueError(f"Entrata #{income_id} non trovata.")
     return True
 
-def sync_income_from_order(order_id: int):
+def sync_income_from_order(order_id: int, target_status: str = "Incassata"):
     conn = get_db()
     order = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
     if not order:
         conn.close()
         raise ValueError(f"Ordine #{order_id} non trovato.")
 
-    # Check if already synced
-    existing = conn.execute("SELECT * FROM incomes WHERE order_id = ?", (order_id,)).fetchone()
-    if existing:
-        conn.close()
-        return dict(existing)
-
-    status_map = {
-        "Ordine pagato": "Incassata",
-        "Pagamento verificato": "Incassata",
-        "Spedito / Consegnato": "Incassata",
-        "In preparazione": "Incassata",
-        "Ordine confermato": "Confermata",
-        "Ordine da pagare": "In attesa",
-        "Ordine ricevuto": "In attesa",
-        "In attesa di pagamento": "In attesa",
-        "Nuovo ordine": "In attesa"
-    }
-    income_status = status_map.get(order["status"], "Confermata")
-    desc = f"Ordine #{order['order_number']} — {order['customer_first_name']} {order['customer_last_name']}"
-    date_str = order["created_at"][:10]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    ord_status = "Pagamento verificato" if target_status == "Incassata" else ("Ordine confermato" if target_status == "Confermata" else "In attesa di pagamento")
     amount = float(order["total_amount"])
 
-    now_iso = datetime.now(timezone.utc).isoformat()
+    # Check if already synced
+    existing = conn.execute("SELECT * FROM incomes WHERE order_id = ?", (order_id,)).fetchone()
     with conn:
-        cur = conn.execute("""
-            INSERT INTO incomes (
-                description, amount, date, payment_method, order_reference,
-                order_id, status, notes, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (desc, amount, date_str, "Bonifico bancario", order["order_number"],
-              order_id, income_status, f"Sincronizzato da ordine online. Consegna: {order['delivery_method']}", now_iso, now_iso))
-        new_id = cur.lastrowid
-        row = conn.execute("SELECT * FROM incomes WHERE id = ?", (new_id,)).fetchone()
-    conn.close()
+        if existing:
+            conn.execute("""
+                UPDATE incomes
+                SET status = ?, amount = ?, updated_at = ?
+                WHERE id = ?
+            """, (target_status, amount, now_iso, existing["id"]))
+            conn.execute("""
+                UPDATE orders
+                SET status = ?, updated_at = ?
+                WHERE id = ?
+            """, (ord_status, now_iso, order_id))
+            row = conn.execute("SELECT * FROM incomes WHERE id = ?", (existing["id"],)).fetchone()
+        else:
+            desc = f"Ordine #{order['order_number']} — {order['customer_first_name']} {order['customer_last_name']}"
+            date_str = order["created_at"][:10]
+            cur = conn.execute("""
+                INSERT INTO incomes (
+                    description, amount, date, payment_method, order_reference,
+                    order_id, status, notes, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (desc, amount, date_str, "Bonifico bancario", order["order_number"],
+                  order_id, target_status, f"Sincronizzato da ordine online. Consegna: {order['delivery_method']}", now_iso, now_iso))
+            new_id = cur.lastrowid
+            conn.execute("""
+                UPDATE orders
+                SET status = ?, updated_at = ?
+                WHERE id = ?
+            """, (ord_status, now_iso, order_id))
+            row = conn.execute("SELECT * FROM incomes WHERE id = ?", (new_id,)).fetchone()
 
+    conn.close()
     return dict(row)
+
+def sync_all_orders_to_incomes(target_status: str = "Incassata"):
+    """Synchronizes or updates all orders in SQLite into incomes with the given target status."""
+    conn = get_db()
+    orders = conn.execute("SELECT * FROM orders WHERE status != 'Annullato'").fetchall()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    ord_status = "Pagamento verificato" if target_status == "Incassata" else ("Ordine confermato" if target_status == "Confermata" else "In attesa di pagamento")
+
+    updated_count = 0
+    with conn:
+        for ord in orders:
+            order_id = ord["id"]
+            amount = float(ord["total_amount"])
+            existing = conn.execute("SELECT id FROM incomes WHERE order_id = ?", (order_id,)).fetchone()
+            if existing:
+                conn.execute("""
+                    UPDATE incomes SET status = ?, amount = ?, updated_at = ? WHERE id = ?
+                """, (target_status, amount, now_iso, existing["id"]))
+            else:
+                desc = f"Ordine #{ord['order_number']} — {ord['customer_first_name']} {ord['customer_last_name']}"
+                date_str = ord["created_at"][:10]
+                conn.execute("""
+                    INSERT INTO incomes (
+                        description, amount, date, payment_method, order_reference,
+                        order_id, status, notes, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (desc, amount, date_str, "Bonifico bancario", ord["order_number"],
+                      order_id, target_status, f"Sincronizzato da modulo ordini. Consegna: {ord['delivery_method']}", now_iso, now_iso))
+            conn.execute("""
+                UPDATE orders SET status = ?, updated_at = ? WHERE id = ?
+            """, (ord_status, now_iso, order_id))
+            updated_count += 1
+
+    conn.close()
+    return {"success": True, "count": updated_count, "status": target_status}
 
 def get_expenses(category="all", search=None, sort_by="date", order="desc", period="all", start_date=None, end_date=None):
     conn = get_db()

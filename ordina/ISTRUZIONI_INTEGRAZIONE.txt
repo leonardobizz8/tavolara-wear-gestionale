@@ -1,0 +1,21 @@
+TAVOLARA WEAR — ISTRUZIONI INTEGRAZIONE MODULO ORDINI
+=====================================================
+
+Questa cartella "ordina" contiene l'intero sistema di raccolta ordini per Tavolara Wear:
+- index.html   -> Il modulo d'ordine clienti (selezione colore, taglia, spedizione, sconto e bonifico)
+- admin.html   -> La dashboard finanziaria per i soci (ordini, magazzino, metriche)
+- assets/      -> Foto ufficiali t-shirt, logo vettoriale e panorama
+- css/         -> Fogli di stile mobile-first coordinati al brand
+- js/          -> Logica calcoli, validazioni e sincronizzazione
+
+COME INTEGRARLO NEL SITO IN 2 SEMPLICI PASSI:
+---------------------------------------------
+1. Trascina questa intera cartella "ordina" all'interno del tuo sito (nella stessa cartella dove si trova il tuo index.html principale).
+
+2. Nel tuo sito (index.html), aggiungi il collegamento al modulo:
+   - Nel pulsante del carrello o nell'header, inserisci un link che punta a:
+     href="/ordina" (oppure href="ordina/index.html")
+
+FATTO! 
+- Il modulo clienti sarà visibile su: tavolarawear.it/ordina
+- La dashboard soci sarà su:         tavolarawear.it/ordina/admin.html

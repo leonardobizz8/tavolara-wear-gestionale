@@ -1053,14 +1053,29 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                 send_error_json(self, str(e), status=400)
             return
 
+        if path == "/api/admin/incomes/sync-all":
+            if not is_admin_authenticated(self):
+                send_error_json(self, "Non autorizzato.", status=401)
+                return
+            data = read_json_body(self) or {}
+            target_status = data.get("status", "Incassata")
+            try:
+                res = financial.sync_all_orders_to_incomes(target_status=target_status)
+                send_json(self, res)
+            except Exception as e:
+                send_error_json(self, str(e), status=400)
+            return
+
         m_inc_sync = re.match(r"^/api/admin/incomes/sync-order/(\d+)$", path)
         if m_inc_sync:
             if not is_admin_authenticated(self):
                 send_error_json(self, "Non autorizzato.", status=401)
                 return
             order_id = int(m_inc_sync.group(1))
+            data = read_json_body(self) or {}
+            target_status = data.get("status", "Incassata")
             try:
-                income = financial.sync_income_from_order(order_id)
+                income = financial.sync_income_from_order(order_id, target_status=target_status)
                 send_json(self, {"success": True, "income": income}, status=201)
             except Exception as e:
                 send_error_json(self, str(e), status=400)
@@ -1261,6 +1276,14 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                     SET status = ?, updated_at = ?
                     WHERE id = ?
                 """, (new_status, now_iso, order_id))
+                
+                # Also update corresponding income status if exists
+                inc_status = "Incassata" if new_status in ["Ordine pagato", "Pagamento verificato", "In preparazione", "Spedito / Consegnato"] else ("Confermata" if new_status == "Ordine confermato" else "In attesa")
+                conn.execute("""
+                    UPDATE incomes
+                    SET status = ?, updated_at = ?
+                    WHERE order_id = ?
+                """, (inc_status, now_iso, order_id))
             conn.close()
 
             if cur.rowcount == 0:

@@ -88,7 +88,18 @@ def sync_excel_to_supabase(parsed_orders, total_turnover, total_costs, total_shi
         variants = json.loads(r.read().decode())
     variant_map = {(v["color_code"], v["size"]): v["id"] for v in variants}
 
-    # 3. Clean up previous EXCEL- records
+    # 3. Clean up previous EXCEL- records while preserving verified payment statuses
+    preserved_statuses = {}
+    try:
+        get_txs = urllib.request.Request(f"{url_base}/rest/v1/transactions?select=reference,status", headers=headers)
+        with urllib.request.urlopen(get_txs, context=ctx) as r:
+            existing_txs = json.loads(r.read().decode())
+            for t in existing_txs:
+                if t.get("reference") and t.get("status"):
+                    preserved_statuses[t["reference"]] = t["status"]
+    except Exception:
+        pass
+
     get_old = urllib.request.Request(f"{url_base}/rest/v1/orders?order_number=like.EXCEL-*&select=id", headers=headers)
     with urllib.request.urlopen(get_old, context=ctx) as r:
         old_orders = json.loads(r.read().decode())
@@ -114,8 +125,11 @@ def sync_excel_to_supabase(parsed_orders, total_turnover, total_costs, total_shi
         last_name = parts[1] if len(parts) > 1 else ""
         clean_last = last_name.lower().replace(" ", "")
         email = f"{first_name.lower()}.{clean_last}@tavolarawear.it"
-        status = "Ordine pagato" if o["is_pagato"] else "Ordine da pagare"
-        payment_status = "pagato" if o["is_pagato"] else "da_pagare"
+        
+        prev_st = preserved_statuses.get(order_num_str)
+        is_paid = o["is_pagato"] or (prev_st == "Incassata")
+        status = "Ordine pagato" if is_paid else ("Ordine confermato" if prev_st == "Confermata" else "Ordine da pagare")
+        payment_status = "pagato" if is_paid else "da_pagare"
         delivery_method = "home" if o["indirizzo"] else "hand"
 
         orders_payload.append({
@@ -180,7 +194,7 @@ def sync_excel_to_supabase(parsed_orders, total_turnover, total_costs, total_shi
             "created_at": f"{o['date']}T10:00:00Z"
         })
 
-        tx_status = "Incassata" if o["is_pagato"] else "In attesa"
+        tx_status = preserved_statuses.get(order_num_str) or ("Incassata" if o["is_pagato"] else "In attesa")
         tx_payload.append({
             "type": "incasso",
             "order_id": order_id,
@@ -510,8 +524,12 @@ def sync_excel_to_db(excel_path=None, force=False):
 
     now_iso = datetime.now(timezone.utc).isoformat()
 
-    # Synchronize into Database atomically
+    # Synchronize into Database atomically while preserving verified payment statuses
     with conn:
+        preserved_sqlite = {}
+        for r in conn.execute("SELECT order_reference, status FROM incomes WHERE order_reference IS NOT NULL").fetchall():
+            preserved_sqlite[r["order_reference"]] = r["status"]
+
         # 1. Clear previous Excel-synced rows to prevent duplication
         conn.execute("DELETE FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE order_token LIKE 'EXCEL-%')")
         conn.execute("DELETE FROM orders WHERE order_token LIKE 'EXCEL-%'")
@@ -532,8 +550,10 @@ def sync_excel_to_db(excel_path=None, force=False):
             first_name = parts[0]
             last_name = parts[1] if len(parts) > 1 else ""
 
-            status = "Pagamento verificato" if o["is_pagato"] else "In attesa di pagamento"
-            income_status = "Incassata" if o["is_pagato"] else "Confermata"
+            prev_st = preserved_sqlite.get(order_num_str)
+            is_paid = o["is_pagato"] or (prev_st == "Incassata")
+            status = "Pagamento verificato" if is_paid else ("Ordine confermato" if prev_st == "Confermata" else "In attesa di pagamento")
+            income_status = prev_st if prev_st in ["Incassata", "Confermata"] else ("Incassata" if is_paid else "In attesa")
 
             # Insert into orders
             cur = conn.execute("""

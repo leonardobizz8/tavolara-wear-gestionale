@@ -1,0 +1,708 @@
+import os
+import subprocess
+
+html_content = """<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Tavolara Wear — Buono d'Ordine & Pianificazione Fornitura</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 14mm 12mm 14mm;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #292825;
+      background: #FFFFFF;
+      font-size: 10pt;
+      line-height: 1.4;
+    }
+    
+    .page-break {
+      page-break-after: always;
+      height: 0;
+      display: block;
+    }
+    
+    /* Page Container */
+    .page-container {
+      height: 270mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Header */
+    .header-table {
+      width: 100%;
+      border-bottom: 2px solid #1F364D;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    
+    .brand-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 22pt;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: #1F364D;
+      line-height: 1.1;
+    }
+    
+    .brand-subtitle {
+      font-size: 9.5pt;
+      color: #C4775B;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 3px;
+    }
+    
+    .doc-meta {
+      text-align: right;
+      font-size: 9pt;
+      color: #555555;
+      line-height: 1.4;
+    }
+    
+    .doc-meta strong {
+      color: #1F364D;
+    }
+    
+    /* Info Cards Grid */
+    .kpi-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    
+    .kpi-box {
+      flex: 1;
+      background: #F8F7F4;
+      border: 1px solid #E5E3DC;
+      border-radius: 6px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+    
+    .kpi-box.primary {
+      background: #F0F4F8;
+      border-color: #BCD0E2;
+    }
+    
+    .kpi-box .label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #7E7C77;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    
+    .kpi-box .val {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #1F364D;
+      line-height: 1.15;
+    }
+    
+    .kpi-box.terracotta .val {
+      color: #A34827;
+    }
+    
+    .kpi-box .sub {
+      font-size: 7.5pt;
+      color: #666666;
+      margin-top: 2px;
+    }
+
+    /* Section Headings */
+    .section-title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1F364D;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 10px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .section-badge {
+      font-size: 8pt;
+      font-weight: 600;
+      background: #E8F5E9;
+      color: #2B6E4F;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: none;
+      letter-spacing: normal;
+    }
+
+    .section-badge.blue {
+      background: #E8F1F5;
+      color: #1F364D;
+    }
+    
+    /* Order Table */
+    table.order-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 12px;
+      font-size: 9.5pt;
+    }
+    
+    table.order-table th {
+      background: #1F364D;
+      color: #FFFFFF;
+      font-weight: 600;
+      padding: 7px 10px;
+      text-align: center;
+      font-size: 8.5pt;
+      letter-spacing: 0.03em;
+    }
+    
+    table.order-table th.left {
+      text-align: left;
+    }
+    
+    table.order-table th.navy-head {
+      background: #14283D;
+      border-right: 1px solid rgba(255,255,255,0.15);
+    }
+    
+    table.order-table th.white-head {
+      background: #3B4B5C;
+      border-right: 1px solid rgba(255,255,255,0.15);
+    }
+    
+    table.order-table td {
+      padding: 6px 10px;
+      border: 1px solid #E2E0D8;
+      text-align: center;
+    }
+    
+    table.order-table td.left {
+      text-align: left;
+    }
+    
+    table.order-table td.bold {
+      font-weight: 700;
+      color: #1F364D;
+    }
+    
+    table.order-table tr.highlight-row {
+      background: #FAF9F6;
+    }
+    
+    table.order-table tr.top-seller td {
+      background: #FFF9F2;
+      font-weight: 600;
+    }
+    
+    table.order-table tr.top-seller td.highlight-cell {
+      background: #FCE8D8;
+      color: #A34827;
+      font-weight: 700;
+      font-size: 10.5pt;
+    }
+    
+    table.order-table tr.total-row td {
+      background: #ECEAE4;
+      font-weight: 700;
+      border-top: 2px solid #1F364D;
+      border-bottom: 2px solid #1F364D;
+      font-size: 10pt;
+    }
+    
+    /* Specifications & Details */
+    .specs-box {
+      background: #FBFBFA;
+      border: 1px solid #E5E3DC;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 8.5pt;
+    }
+    
+    .specs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 16px;
+    }
+    
+    .specs-item {
+      display: flex;
+    }
+    
+    .specs-item strong {
+      width: 145px;
+      flex-shrink: 0;
+      color: #1F364D;
+    }
+    
+    .specs-item span {
+      color: #444444;
+    }
+
+    /* Financial table */
+    table.fin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin-bottom: 12px;
+    }
+    table.fin-table th {
+      background: #1F364D;
+      color: #FFFFFF;
+      font-weight: 600;
+      padding: 6px 8px;
+      text-align: right;
+    }
+    table.fin-table th:first-child {
+      text-align: left;
+    }
+    table.fin-table td {
+      padding: 6px 8px;
+      border: 1px solid #E2E0D8;
+      text-align: right;
+    }
+    table.fin-table td:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+    table.fin-table tr.highlight td {
+      background: #E8F5E9;
+      font-weight: 700;
+      color: #2B6E4F;
+    }
+
+    /* Signatures Footer */
+    .sign-table {
+      width: 100%;
+      margin-top: 10px;
+      border-top: 1px dashed #D0CEC7;
+      padding-top: 10px;
+    }
+    
+    .sign-cell {
+      width: 50%;
+      vertical-align: top;
+      font-size: 9pt;
+      color: #555555;
+    }
+    
+    .sign-line {
+      margin-top: 30px;
+      border-top: 1px solid #292825;
+      width: 80%;
+    }
+
+    .callout-box {
+      background: #F4F6F9;
+      border-left: 3px solid #1F364D;
+      padding: 8px 12px;
+      font-size: 8.5pt;
+      color: #333333;
+      margin-bottom: 10px;
+      border-radius: 0 4px 4px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======================================================== -->
+  <!-- PAGE 1: BUONO D'ORDINE UFFICIALE (LOTTO 65 CAPI)          -->
+  <!-- ======================================================== -->
+  <div class="page-container">
+    <div>
+      <!-- Header -->
+      <table class="header-table">
+        <tr>
+          <td style="vertical-align: middle;">
+            <div class="brand-title">TAVOLARA WEAR</div>
+            <div class="brand-subtitle">Buono d'Ordine Fornitura Merci & Stock</div>
+          </td>
+          <td class="doc-meta" style="vertical-align: middle;">
+            <strong>Doc. N°:</strong> ORD-TVL-2026-STK65<br>
+            <strong>Data Emissione:</strong> 15 Novembre 2026<br>
+            <strong>Committente:</strong> Tavolara Wear Srl<br>
+            <strong>Destinazione:</strong> Magazzino Olbia (SS)
+          </td>
+        </tr>
+      </table>
+
+      <!-- Summary KPIs -->
+      <div class="kpi-row">
+        <div class="kpi-box primary">
+          <div class="label">Quantità Totale</div>
+          <div class="val">65 Capi</div>
+          <div class="sub">Calibrato su 59 ordini reali</div>
+        </div>
+        <div class="kpi-box">
+          <div class="label">🔵 Blu Navy (68%)</div>
+          <div class="val">44 Capi</div>
+          <div class="sub">24 M • 11 L • 4 XL • 3 S • 2 XXL</div>
+        </div>
+        <div class="kpi-box">
+          <div class="label">⚪ Bianca (32%)</div>
+          <div class="val">21 Capi</div>
+          <div class="sub">8 L • 5 S • 5 M • 2 XL • 1 XXL</div>
+        </div>
+        <div class="kpi-box terracotta">
+          <div class="label">Importo Stimato</div>
+          <div class="val">€ 780,00</div>
+          <div class="sub">@ 12,00 € / capo con serigrafia</div>
+        </div>
+      </div>
+
+      <!-- Main Order Table -->
+      <div class="section-title">
+        <span>1. Matrice Fabbisogno per Manifattura (Colore × Taglia)</span>
+        <span class="section-badge">✓ Ordine Principale 65 Capi</span>
+      </div>
+
+      <table class="order-table">
+        <thead>
+          <tr>
+            <th class="left" style="width: 20%;">Taglia Articolo</th>
+            <th class="navy-head" style="width: 24%;">🔵 Blu Navy</th>
+            <th class="white-head" style="width: 24%;">⚪ Bianco Ottico</th>
+            <th style="width: 16%;">Totale Taglia</th>
+            <th style="width: 16%;">% Domanda Reale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="left bold">Taglia S</td>
+            <td class="bold">3</td>
+            <td class="bold">5</td>
+            <td class="bold">8</td>
+            <td>12.3%</td>
+          </tr>
+          <tr class="top-seller">
+            <td class="left bold">Taglia M <span style="font-size: 7.5pt; color: #C4775B;">(Top Seller)</span></td>
+            <td class="highlight-cell">24</td>
+            <td>5</td>
+            <td class="bold" style="color: #A34827;">29</td>
+            <td>44.6%</td>
+          </tr>
+          <tr class="highlight-row">
+            <td class="left bold">Taglia L</td>
+            <td class="bold">11</td>
+            <td class="bold">8</td>
+            <td class="bold">19</td>
+            <td>29.2%</td>
+          </tr>
+          <tr>
+            <td class="left bold">Taglia XL</td>
+            <td class="bold">4</td>
+            <td class="bold">2</td>
+            <td class="bold">6</td>
+            <td>9.2%</td>
+          </tr>
+          <tr class="highlight-row">
+            <td class="left bold">Taglia XXL</td>
+            <td class="bold">2</td>
+            <td class="bold">1</td>
+            <td class="bold">3</td>
+            <td>4.6%</td>
+          </tr>
+          <tr class="total-row">
+            <td class="left">TOTALE GENERALE</td>
+            <td>44 Capi</td>
+            <td>21 Capi</td>
+            <td>65 CAPI</td>
+            <td>100.0%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Specifiche di Produzione -->
+      <div class="section-title">
+        <span>2. Specifiche Tecniche di Confezionamento</span>
+      </div>
+      <div class="specs-box">
+        <div class="specs-grid">
+          <div class="specs-item">
+            <strong>Modello:</strong>
+            <span>T-Shirt Classic Unisex Tavolara Wear</span>
+          </div>
+          <div class="specs-item">
+            <strong>Tessuto:</strong>
+            <span>100% Cotone Pettinato Ring-Spun</span>
+          </div>
+          <div class="specs-item">
+            <strong>Grammatura:</strong>
+            <span>180 - 190 g/m² (consistenza premium)</span>
+          </div>
+          <div class="specs-item">
+            <strong>Trattamento:</strong>
+            <span>Pre-ristretto con finissaggio siliconico soft</span>
+          </div>
+          <div class="specs-item">
+            <strong>Serigrafia / Logo:</strong>
+            <span>Stampa serigrafica alta tenacità ai lavaggi</span>
+          </div>
+          <div class="specs-item">
+            <strong>Confezionamento:</strong>
+            <span>Busta singola trasparente con adesivo taglia visibile</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout-box">
+        <strong>Nota logistica:</strong> La ripartizione rispecchia rigorosamente la domanda effettiva dei clienti. La taglia M Blu Navy copre il 37% delle richieste, mentre per la maglia Bianca la taglia L e la S rappresentano i due formati più richiesti.
+      </div>
+    </div>
+
+    <!-- Signatures -->
+    <table class="sign-table">
+      <tr>
+        <td class="sign-cell">
+          <strong>Per il Committente:</strong><br>
+          Tavolara Wear Srl
+          <div class="sign-line"></div>
+          <span style="font-size: 8pt; color: #888;">Firma per approvazione e ordine</span>
+        </td>
+        <td class="sign-cell" style="text-align: right;">
+          <div style="display: inline-block; text-align: left;">
+            <strong>Per la Manifattura Fornitrice:</strong><br>
+            Accettazione ordine e presa in carico
+            <div class="sign-line" style="width: 100%;"></div>
+            <span style="font-size: 8pt; color: #888;">Timbro e Firma per conferma</span>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- ======================================================== -->
+  <!-- PAGE 2: PROIEZIONE 100 CAPI & CONFRONTO ECONOMICO         -->
+  <!-- ======================================================== -->
+  <div class="page-container">
+    <div>
+      <!-- Header Page 2 -->
+      <table class="header-table">
+        <tr>
+          <td style="vertical-align: middle;">
+            <div class="brand-title">TAVOLARA WEAR</div>
+            <div class="brand-subtitle">Piano d'Acquisto Scalato — Scenario 100 Capi</div>
+          </td>
+          <td class="doc-meta" style="vertical-align: middle;">
+            <strong>Rif. Proiezione:</strong> PRJ-TVL-2026-STK100<br>
+            <strong>Data Emissione:</strong> 15 Novembre 2026<br>
+            <strong>Tipologia:</strong> Simulazione Espansione Stock
+          </td>
+        </tr>
+      </table>
+
+      <!-- Summary KPIs Page 2 -->
+      <div class="kpi-row">
+        <div class="kpi-box primary">
+          <div class="label">Volume Proiettato</div>
+          <div class="val">100 Capi</div>
+          <div class="sub">+35 capi rispetto al lotto base</div>
+        </div>
+        <div class="kpi-box">
+          <div class="label">🔵 Blu Navy (68%)</div>
+          <div class="val">68 Capi</div>
+          <div class="sub">37 M • 17 L • 7 XL • 4 S • 3 XXL</div>
+        </div>
+        <div class="kpi-box">
+          <div class="label">⚪ Bianca (32%)</div>
+          <div class="val">32 Capi</div>
+          <div class="sub">12 L • 8 S • 7 M • 3 XL • 2 XXL</div>
+        </div>
+        <div class="kpi-box terracotta">
+          <div class="label">Valore Fornitura Stim.</div>
+          <div class="val">€ 1.200,00</div>
+          <div class="sub">Possibili sconti volume manifattura</div>
+        </div>
+      </div>
+
+      <!-- Main Order Table 100 Capi -->
+      <div class="section-title">
+        <span>1. Matrice Dettagliata per il Fornitore — Lotto 100 Capi</span>
+        <span class="section-badge blue">Scenario Volume 100 Pezzi</span>
+      </div>
+
+      <table class="order-table">
+        <thead>
+          <tr>
+            <th class="left" style="width: 20%;">Taglia Articolo</th>
+            <th class="navy-head" style="width: 24%;">🔵 Blu Navy</th>
+            <th class="white-head" style="width: 24%;">⚪ Bianco Ottico</th>
+            <th style="width: 16%;">Totale Taglia</th>
+            <th style="width: 16%;">% Mix Totale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="left bold">Taglia S</td>
+            <td class="bold">4</td>
+            <td class="bold">8</td>
+            <td class="bold">12</td>
+            <td>12.0%</td>
+          </tr>
+          <tr class="top-seller">
+            <td class="left bold">Taglia M <span style="font-size: 7.5pt; color: #C4775B;">(Top Seller)</span></td>
+            <td class="highlight-cell">37</td>
+            <td>7</td>
+            <td class="bold" style="color: #A34827;">44</td>
+            <td>44.0%</td>
+          </tr>
+          <tr class="highlight-row">
+            <td class="left bold">Taglia L</td>
+            <td class="bold">17</td>
+            <td class="bold">12</td>
+            <td class="bold">29</td>
+            <td>29.0%</td>
+          </tr>
+          <tr>
+            <td class="left bold">Taglia XL</td>
+            <td class="bold">7</td>
+            <td class="bold">3</td>
+            <td class="bold">10</td>
+            <td>10.0%</td>
+          </tr>
+          <tr class="highlight-row">
+            <td class="left bold">Taglia XXL</td>
+            <td class="bold">3</td>
+            <td class="bold">2</td>
+            <td class="bold">5</td>
+            <td>5.0%</td>
+          </tr>
+          <tr class="total-row">
+            <td class="left">TOTALE GENERALE</td>
+            <td>68 Capi</td>
+            <td>32 Capi</td>
+            <td>100 CAPI</td>
+            <td>100.0%</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Financial Comparison Table -->
+      <div class="section-title">
+        <span>2. Confronto Finanziario e Redditività Attesa</span>
+      </div>
+
+      <table class="fin-table">
+        <thead>
+          <tr>
+            <th>Parametro Economico</th>
+            <th>Lotto 65 Capi</th>
+            <th>Lotto 100 Capi</th>
+            <th>Incremento Netto (+35 Capi)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Costo Unitario Fornitura Stimato</td>
+            <td>€ 12,00</td>
+            <td>€ 12,00</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Investimento Acquisto Merci (Costo)</td>
+            <td>€ 780,00</td>
+            <td>€ 1.200,00</td>
+            <td>+ € 420,00</td>
+          </tr>
+          <tr>
+            <td>Prezzo di Vendita Unitario al Pubblico</td>
+            <td>€ 25,00</td>
+            <td>€ 25,00</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Fatturato Lordo Stimato (Sold Out)</td>
+            <td>€ 1.625,00</td>
+            <td>€ 2.500,00</td>
+            <td>+ € 875,00</td>
+          </tr>
+          <tr class="highlight">
+            <td>Utile Lordo Commerciale Potenziale</td>
+            <td>€ 845,00</td>
+            <td>€ 1.300,00</td>
+            <td>+ € 455,00</td>
+          </tr>
+          <tr>
+            <td>Margine di Profitto Lordo (%)</td>
+            <td>52,0%</td>
+            <td>52,0%</td>
+            <td>Stabile (> 52%)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Strategic insights -->
+      <div class="callout-box" style="margin-top: 12px;">
+        <strong>Perché valutare il lotto da 100 capi:</strong>
+        <ul style="margin-left: 18px; margin-top: 4px; line-height: 1.45;">
+          <li><strong>Economie di scala:</strong> Ordinando 100 pezzi è possibile negoziare con la manifattura una riduzione del costo unitario da 12,00 € a circa 11,00 - 11,50 €/capo, aumentando ulteriormente il margine utile a oltre 1.350 €.</li>
+          <li><strong>Disponibilità continua:</strong> Con 37 magliette M Blu Navy e 29 magliette L totali si azzera il rischio di esaurire le taglie chiave durante i picchi di vendita stagionali.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Signatures Page 2 -->
+    <table class="sign-table">
+      <tr>
+        <td class="sign-cell">
+          <strong>Direzione Tavolara Wear Srl:</strong><br>
+          Valutazione commerciale e approvazione budget
+          <div class="sign-line"></div>
+        </td>
+        <td class="sign-cell" style="text-align: right;">
+          <div style="display: inline-block; text-align: left;">
+            <strong>File Excel associato:</strong><br>
+            <span style="font-family: monospace; font-size: 8.5pt;">Pianificazione_Ordini_Stock_Tavolara_Wear.xlsx</span>
+            <div class="sign-line" style="width: 100%;"></div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</body>
+</html>
+"""
+
+html_path = "ordine_fornitore_temp.html"
+pdf_path = "Ordine_Fornitore_Tavolara_Wear_65_e_100_Capi.pdf"
+
+with open(html_path, "w", encoding="utf-8") as f:
+    f.write(html_content)
+
+chrome_exec = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+cmd = [
+    chrome_exec,
+    "--headless",
+    "--disable-gpu",
+    f"--print-to-pdf={pdf_path}",
+    "--no-pdf-header-footer",
+    f"file://{os.path.abspath(html_path)}"
+]
+
+print("Compiling 2-page PDF via Chrome Headless...")
+res = subprocess.run(cmd, capture_output=True, text=True)
+if os.path.exists(pdf_path):
+    print(f"PDF Successfully Generated: {pdf_path} (Size: {os.path.getsize(pdf_path)} bytes)")
+else:
+    print(f"Error generating PDF: {res.stderr}")
