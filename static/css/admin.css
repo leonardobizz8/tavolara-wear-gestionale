@@ -6,93 +6,93 @@
 
 :root {
   /* ------------------------------------------------------------------------
-     1. COLOR PALETTE (REVOLUT ULTRA DARK INDIGO / VIOLET GLASSMORPHISM)
+     1. COLOR PALETTE (WARM IVORY, ANTHRACITE, TERRACOTTA & WARM GRAYS)
      ------------------------------------------------------------------------ */
   /* Canvas & Structural Backgrounds */
-  --bg-canvas: #0d071f;
-  --bg-canvas-top: #30175d;
-  --bg-sidebar: rgba(14, 8, 33, 0.94);
-  --bg-card: rgba(255, 255, 255, 0.055);
-  --bg-card-subtle: rgba(255, 255, 255, 0.035);
-  --bg-hover: rgba(255, 255, 255, 0.08);
-  --bg-active: rgba(121, 82, 236, 0.22);
+  --bg-canvas: #F8F7F4;          /* Warm Ivory (Claude signature parchment) */
+  --bg-sidebar: #F3F1EC;         /* Warm Greige for sidebar navigation */
+  --bg-card: #FFFFFF;            /* Pure Crisp White for content cards */
+  --bg-card-subtle: #FAF9F6;     /* Subtle warm ivory for table headers & active segments */
+  --bg-hover: #EFECE6;           /* Quiet warm hover tint */
+  --bg-active: #E8E5DF;          /* Warm active element highlight */
   
   /* Hairline Borders & Dividers */
-  --border-main: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-dark: rgba(255, 255, 255, 0.14);
+  --border-main: #E5E3DD;        /* Neutral warm hairline border */
+  --border-subtle: #ECEAE4;      /* Secondary ultra-subtle divider */
+  --border-dark: #D4D0C7;        /* Focused/interactive border */
   
-  /* Typography */
-  --text-main: #FFFFFF;
-  --text-secondary: #B8A9D6;
-  --text-muted: #8576A6;
-  --text-subtle: #564B73;
-  --text-on-dark: #FFFFFF;
+  /* Primary Anthracite Typography */
+  --text-main: #292825;          /* Deep warm charcoal (Claude primary text) */
+  --text-secondary: #716E68;     /* Muted warm slate for secondary info */
+  --text-muted: #8A8780;         /* Quiet caption/label warm gray */
+  --text-subtle: #ABA7A0;        /* Subtle placeholders & disabled text */
+  --text-on-dark: #FAF9F6;       /* Crisp warm white on dark fills */
 
-  /* Revolut Electric Violet (Primary Accent) */
-  --terracotta: #7952EC;
-  --terracotta-hover: #906BFF;
-  --terracotta-dark: #5B3BBF;
-  --terracotta-bg: rgba(121, 82, 236, 0.2);
-  --terracotta-border: rgba(121, 82, 236, 0.4);
+  /* Claude Terracotta Accent & Warm Washes */
+  --terracotta: #C4775B;         /* Claude signature warm terracotta */
+  --terracotta-hover: #B2684E;   /* Darker terracotta on hover */
+  --terracotta-dark: #934B34;    /* Deep burnt terracotta */
+  --terracotta-bg: #FAF0EB;      /* Warm clay wash for pills/badges */
+  --terracotta-border: #F0D5C9;  /* Soft terracotta border */
 
-  /* Semantic Financial Accents (Revolut Neon Style) */
-  /* Positive / Incomes / Collected: Neon Mint Green */
-  --olive: #00D589;
-  --olive-dark: #00B574;
-  --olive-bg: rgba(0, 213, 137, 0.15);
-  --olive-border: rgba(0, 213, 137, 0.35);
+  /* Semantic Financial Accents (Warm & Editorial, Non-Neon) */
+  /* Positive / Incomes / Collected: Warm Olive Green */
+  --olive: #2B6E4F;
+  --olive-dark: #20533B;
+  --olive-bg: #EDF5F0;
+  --olive-border: #CBE3D3;
 
-  /* Negative / Expenses / Costs: Coral Rose Red */
-  --brick: #FF453A;
-  --brick-dark: #E6382E;
-  --brick-bg: rgba(255, 69, 58, 0.15);
-  --brick-border: rgba(255, 69, 58, 0.35);
+  /* Negative / Expenses / Costs: Warm Brick / Terracotta-Red */
+  --brick: #BA4A38;
+  --brick-dark: #9A3929;
+  --brick-bg: #FDF2F0;
+  --brick-border: #F5D3CD;
 
-  /* Pending / Imballaggio / Alert: Neon Amber */
-  --amber-warm: #FFB340;
-  --amber-dark: #E69D2C;
-  --amber-bg: rgba(255, 179, 64, 0.15);
-  --amber-border: rgba(255, 179, 64, 0.35);
+  /* Pending / Imballaggio / Alert: Warm Ochre & Amber */
+  --amber-warm: #A76B29;
+  --amber-dark: #87551D;
+  --amber-bg: #FAF4EC;
+  --amber-border: #EEDAC1;
 
-  /* Magliette / Navy / Operations: Electric Violet Slate */
-  --navy-warm: #8B5CF6;
-  --navy-bg: rgba(139, 92, 246, 0.15);
-  --navy-border: rgba(139, 92, 246, 0.35);
+  /* Magliette / Navy / Operations: Warm Deep Slate */
+  --navy-warm: #1F364D;
+  --navy-bg: #EEF3F8;
+  --navy-border: #D1E0EE;
 
-  /* Plum / Accents: Electric Lavender */
-  --plum: #A78BFA;
-  --plum-bg: rgba(167, 139, 250, 0.15);
-  --plum-border: rgba(167, 139, 250, 0.35);
+  /* Development / Prove: Warm Plum */
+  --plum: #6E4973;
+  --plum-bg: #F7F1F8;
+  --plum-border: #E5D5E7;
 
   /* ------------------------------------------------------------------------
-     2. TYPOGRAPHY STACKS
+     2. EDITORIAL TYPOGRAPHY STACKS
      ------------------------------------------------------------------------ */
-  --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Plus Jakarta Sans", "Inter", sans-serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Plus Jakarta Sans", "Inter", sans-serif;
+  --font-serif: "Newsreader", "Source Serif 4", "Iowan Old Style", "Apple Garamond", "Baskerville", Georgia, "Times New Roman", serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 
   /* ------------------------------------------------------------------------
-     3. ELEVATION, GLASS & RADII
+     3. ARCHITECTURAL GEOMETRY & SUBTLE ELEVATIONS
      ------------------------------------------------------------------------ */
-  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
-  --shadow-card-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-  --shadow-dropdown: 0 16px 40px -4px rgba(0, 0, 0, 0.6);
-  --shadow-modal: 0 24px 64px -10px rgba(0, 0, 0, 0.7);
+  /* Quiet Shadows (Never heavy or glossy) */
+  --shadow-xs: 0 1px 2px rgba(41, 40, 37, 0.03);
+  --shadow-card: 0 1px 3px rgba(41, 40, 37, 0.04), 0 1px 2px rgba(41, 40, 37, 0.02);
+  --shadow-card-hover: 0 4px 14px -2px rgba(41, 40, 37, 0.06), 0 1px 3px rgba(41, 40, 37, 0.03);
+  --shadow-dropdown: 0 10px 24px -4px rgba(41, 40, 37, 0.08), 0 1px 3px rgba(41, 40, 37, 0.04);
+  --shadow-modal: 0 20px 48px -10px rgba(41, 40, 37, 0.14), 0 2px 6px rgba(41, 40, 37, 0.04);
 
-  /* Radii */
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius-card: 20px;
-  --radius-lg: 24px;
+  /* Restrained Clean Radii */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-card: 10px;
+  --radius-lg: 14px;
   --radius-pill: 9999px;
   --radius-full: 9999px;
 
   --sidebar-width: 270px;
   --header-height: 72px;
 
-  /* Transitions */
+  /* Refined Natural Transitions */
   --transition-fast: 0.15s cubic-bezier(0.2, 0, 0, 1);
   --transition-smooth: 0.25s cubic-bezier(0.2, 0, 0, 1);
 }
@@ -110,13 +110,13 @@
 
 html {
   scroll-behavior: smooth;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   font-family: var(--font-sans);
   color: var(--text-main);
-  background: #0d071f radial-gradient(120% 80% at 50% -10%, #30175d 0%, #150c2e 45%, #0b0619 100%) no-repeat fixed;
+  background: #F8F7F4 radial-gradient(circle at 10% 8%, rgba(196, 119, 91, 0.038) 0%, transparent 45%), radial-gradient(circle at 90% 45%, rgba(43, 110, 79, 0.032) 0%, transparent 50%), radial-gradient(circle at 50% 95%, rgba(31, 54, 77, 0.028) 0%, transparent 50%) fixed;
   min-height: 100vh;
   line-height: 1.5;
   letter-spacing: -0.008em;
@@ -151,8 +151,8 @@ body {
 .login-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 5, 22, 0.85);
-  backdrop-filter: blur(20px);
+  background: rgba(41, 40, 37, 0.35);
+  backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -163,8 +163,7 @@ body {
 }
 
 .login-card {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(24px);
+  background: var(--bg-card);
   border: 1px solid var(--border-main);
   box-shadow: var(--shadow-modal);
   border-radius: var(--radius-lg);
@@ -224,9 +223,9 @@ body {
   padding: 11px 14px;
   border: 1px solid var(--border-dark);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.06);
+  background: #FFFFFF;
   font-size: 14px;
-  color: #FFFFFF;
+  color: var(--text-main);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   outline: none;
   font-family: inherit;
@@ -278,54 +277,59 @@ body {
 
 /* Primary Terracotta (Claude Brand Button) */
 .apple-btn-primary {
-  background: var(--terracotta);
+  background: linear-gradient(180deg, #CE7D61 0%, #B86B50 100%);
   color: #FFFFFF;
-  border-color: var(--terracotta);
-  box-shadow: 0 1px 2px rgba(41, 40, 37, 0.08);
+  border: 1px solid rgba(154, 75, 52, 0.45);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 8px rgba(184, 107, 80, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 
 .apple-btn-primary:hover {
-  background: var(--terracotta-hover);
-  border-color: var(--terracotta-hover);
+  background: linear-gradient(180deg, #D9886C 0%, #C47559 100%);
+  box-shadow: 0 4px 14px rgba(184, 107, 80, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.45);
 }
 
 /* Editorial Secondary White */
 .apple-btn-secondary {
-  background: rgba(255, 255, 255, 0.08);
-  color: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: var(--shadow-xs);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F8F6F2 100%);
+  color: var(--text-main);
+  border: 1px solid rgba(229, 227, 221, 0.9);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 6px rgba(41, 40, 37, 0.04), inset 0 1px 0 #FFFFFF;
 }
 
 .apple-btn-secondary:hover {
-  background: var(--bg-card-subtle);
+  background: linear-gradient(180deg, #FFFFFF 0%, #F1EEE8 100%);
   border-color: var(--border-dark);
+  box-shadow: 0 3px 8px rgba(41, 40, 37, 0.07), inset 0 1px 0 #FFFFFF;
 }
 
 /* Warm Olive Green (Entrate) */
 .apple-btn-emerald {
-  background: var(--olive);
+  background: linear-gradient(180deg, #328560 0%, #246B4B 100%);
   color: #FFFFFF;
-  border-color: var(--olive);
-  box-shadow: 0 1px 2px rgba(41, 40, 37, 0.08);
+  border: 1px solid rgba(28, 85, 58, 0.45);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 8px rgba(36, 107, 75, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 
 .apple-btn-emerald:hover {
-  background: var(--olive-dark);
-  border-color: var(--olive-dark);
+  background: linear-gradient(180deg, #3B966E 0%, #2B7A56 100%);
+  box-shadow: 0 4px 14px rgba(36, 107, 75, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.45);
 }
 
 /* Warm Brick / Terracotta Red (Uscite) */
 .apple-btn-rose {
-  background: var(--brick);
+  background: linear-gradient(180deg, #C75240 0%, #AF3E2D 100%);
   color: #FFFFFF;
-  border-color: var(--brick);
-  box-shadow: 0 1px 2px rgba(41, 40, 37, 0.08);
+  border: 1px solid rgba(145, 45, 30, 0.45);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 8px rgba(175, 62, 45, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.35);
 }
 
 .apple-btn-rose:hover {
-  background: var(--brick-dark);
-  border-color: var(--brick-dark);
+  background: linear-gradient(180deg, #D6604D 0%, #BD4B3A 100%);
+  box-shadow: 0 4px 14px rgba(175, 62, 45, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.45);
 }
 
 /* Ice / Slate Button */
@@ -369,10 +373,10 @@ body {
    -------------------------------------------------------------------------- */
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-main);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: linear-gradient(180deg, rgba(245, 243, 238, 0.94) 0%, rgba(240, 237, 231, 0.94) 100%);
+  border-right: 1px solid rgba(229, 227, 221, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   position: fixed;
   top: 0;
   bottom: 0;
@@ -394,18 +398,18 @@ body {
 .sidebar-monogram {
   width: 38px;
   height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #7952EC 0%, #4A2896 100%);
-  box-shadow: 0 0 16px rgba(121, 82, 236, 0.35);
+  border-radius: 11px;
+  background: linear-gradient(135deg, #3A3835 0%, #201F1D 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--bg-canvas);
+  color: #FAF9F6;
   font-family: var(--font-serif);
-  font-weight: 500;
-  font-size: 17px;
+  font-weight: 600;
+  font-size: 16px;
   letter-spacing: 0.02em;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(41, 40, 37, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .sidebar-brand-info {
@@ -477,11 +481,12 @@ body {
 }
 
 .sidebar-link.active {
-  background: rgba(121, 82, 236, 0.22);
-  color: #FFFFFF;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF8F5 100%);
+  color: var(--text-main);
   font-weight: 600;
-  border-color: rgba(121, 82, 236, 0.45);
-  box-shadow: 0 0 16px rgba(121, 82, 236, 0.2);
+  border-color: rgba(229, 227, 221, 0.85);
+  box-shadow: 0 2px 8px rgba(41, 40, 37, 0.045), inset 0 1px 0 #FFFFFF;
+  border-radius: 10px;
 }
 
 .sidebar-link svg {
@@ -606,10 +611,11 @@ body {
    -------------------------------------------------------------------------- */
 .top-header {
   height: var(--header-height);
-  background: rgba(13, 7, 31, 0.85);
+  background: rgba(248, 247, 244, 0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-main);
+  border-bottom: 1px solid rgba(229, 227, 221, 0.85);
+  box-shadow: 0 1px 4px rgba(41, 40, 37, 0.025);
   position: sticky;
   top: 0;
   z-index: 90;
@@ -661,23 +667,25 @@ body {
 /* Claude Segmented Control (Pill switcher) */
 .segmented-control {
   display: inline-flex;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(239, 236, 230, 0.85);
+  backdrop-filter: blur(10px);
   padding: 3px;
   border-radius: var(--radius-pill);
   gap: 2px;
-  border: 1px solid var(--border-main);
+  border: 1px solid rgba(229, 227, 221, 0.85);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
 .segment-item {
-  padding: 5px 12px;
+  padding: 5px 13px;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
   border: none;
   background: transparent;
-  border-radius: var(--radius-xs);
+  border-radius: var(--radius-pill);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   font-family: inherit;
 }
@@ -687,10 +695,10 @@ body {
 }
 
 .segment-item.active {
-  background: rgba(255, 255, 255, 0.22);
-  color: #FFFFFF;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F9F8F5 100%);
+  color: var(--text-main);
   font-weight: 600;
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 2px 6px rgba(41, 40, 37, 0.08), inset 0 1px 0 #FFFFFF;
 }
 
 .custom-date-box {
@@ -750,19 +758,20 @@ body {
    CARDS (CRISP WHITE, RESTRAINED, NO GLASSMORPHISM)
    -------------------------------------------------------------------------- */
 .glass-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.91) 100%);
+  border: 1px solid rgba(229, 227, 221, 0.85);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px -2px rgba(41, 40, 37, 0.045), 0 1px 3px rgba(41, 40, 37, 0.025), inset 0 1px 0 0 rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   position: relative;
-  transition: all var(--transition-fast);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card:hover {
-  border-color: var(--border-dark);
-  box-shadow: var(--shadow-card-hover);
+  border-color: rgba(196, 119, 91, 0.4);
+  box-shadow: 0 10px 28px -4px rgba(41, 40, 37, 0.075), 0 2px 6px rgba(41, 40, 37, 0.035), inset 0 1px 0 0 #FFFFFF;
+  transform: translateY(-2px);
 }
 
 /* --------------------------------------------------------------------------
@@ -973,13 +982,13 @@ body {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-dark);
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAF9F6 100%);
+  border: 1px solid rgba(229, 227, 221, 0.9);
   border-radius: var(--radius-pill);
-  padding: 8px 12px;
+  padding: 8px 15px;
   width: 320px;
-  box-shadow: var(--shadow-xs);
-  transition: border-color var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(41, 40, 37, 0.035), inset 0 1px 0 #FFFFFF;
+  transition: all var(--transition-fast);
 }
 
 .table-search-box:focus-within {
@@ -992,7 +1001,7 @@ body {
   background: transparent;
   outline: none;
   font-size: 13.5px;
-  color: #FFFFFF;
+  color: var(--text-main);
   width: 100%;
   font-family: inherit;
 }
@@ -1050,28 +1059,46 @@ body {
   align-items: center;
   gap: 5px;
   font-size: 11.5px;
-  font-weight: 500;
-  padding: 2.5px 8px;
-  border-radius: var(--radius-xs);
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
-.status-pill.incassata {
-  background: var(--olive-bg);
-  color: var(--olive);
-  border: 1px solid var(--olive-border);
+.status-pill.incassata, .status-pill.pagato {
+  background: linear-gradient(180deg, #EDF7F1 0%, #E2F2E7 100%);
+  color: #1F6944;
+  border: 1px solid #C4E6D0;
+  box-shadow: 0 1px 2px rgba(31, 105, 68, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .status-pill.confermata {
-  background: var(--terracotta-bg);
-  color: var(--terracotta);
-  border: 1px solid var(--terracotta-border);
+  background: linear-gradient(180deg, #FAF0EB 0%, #F5E5DC 100%);
+  color: #9C4B33;
+  border: 1px solid #ECC8B8;
+  box-shadow: 0 1px 2px rgba(156, 75, 51, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
-.status-pill.in-attesa {
-  background: var(--amber-bg);
-  color: var(--amber-warm);
-  border: 1px solid var(--amber-border);
+.status-pill.in-attesa, .status-pill.da-pagare {
+  background: linear-gradient(180deg, #FCF6EC 0%, #F9EEDD 100%);
+  color: #9E6422;
+  border: 1px solid #EEDAC1;
+  box-shadow: 0 1px 2px rgba(158, 100, 34, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.status-pill.ricevuto {
+  background: linear-gradient(180deg, #F0F6FB 0%, #E4EFF8 100%);
+  color: #245885;
+  border: 1px solid #C9E0F2;
+  box-shadow: 0 1px 2px rgba(36, 88, 133, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.status-pill.spedito {
+  background: linear-gradient(180deg, #EDF8F5 0%, #DEF2EC 100%);
+  color: #1B6E5B;
+  border: 1px solid #BDE5DA;
+  box-shadow: 0 1px 2px rgba(27, 110, 91, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .category-chip {
@@ -2764,69 +2791,4 @@ body {
   .soci-overview-col {
     padding: 14px;
   }
-}
-
-/* ==========================================================================
-   REVOLUT ULTRA DARK THEME OVERRIDES (SELECTS, STATUS CHIPS & TABLES)
-   ========================================================================== */
-select.apple-input option, .income-status-select option, .order-status-select option {
-  background: #170e36 !important;
-  color: #FFFFFF !important;
-}
-
-.table-btn-icon {
-  color: var(--text-muted);
-}
-.table-btn-icon:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #FFFFFF;
-}
-
-.apple-table tr:hover td {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.status-pill.incassata, .status-pill.pagato {
-  background: rgba(0, 213, 137, 0.16) !important;
-  color: #00D589 !important;
-  border: 1px solid rgba(0, 213, 137, 0.35) !important;
-}
-
-.status-pill.ricevuto {
-  background: rgba(56, 189, 248, 0.16) !important;
-  color: #38BDF8 !important;
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
-}
-
-.status-pill.confermata {
-  background: rgba(121, 82, 236, 0.18) !important;
-  color: #C4B5FD !important;
-  border: 1px solid rgba(121, 82, 236, 0.35) !important;
-}
-
-.status-pill.da-pagare, .status-pill.in-attesa {
-  background: rgba(255, 179, 64, 0.16) !important;
-  color: #FFB340 !important;
-  border: 1px solid rgba(255, 179, 64, 0.35) !important;
-}
-
-.status-pill.spedito {
-  background: rgba(52, 211, 153, 0.16) !important;
-  color: #34D399 !important;
-  border: 1px solid rgba(52, 211, 153, 0.35) !important;
-}
-
-.soci-simulator-result-box {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-}
-
-.soci-sim-partner-row.pala {
-  background: rgba(59, 130, 246, 0.15) !important;
-  color: #93C5FD !important;
-}
-
-.soci-sim-partner-row.leo {
-  background: rgba(121, 82, 236, 0.15) !important;
-  color: #C4B5FD !important;
 }
