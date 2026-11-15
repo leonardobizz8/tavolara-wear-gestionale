@@ -1,37 +1,23 @@
 /**
- * Tavolara Wear — Service Worker (PWA Offline & Asset Cache)
+ * Tavolara Wear — Service Worker (Always Fresh Network-First with Offline Fallback)
+ * Ensures every GitHub/Vercel deploy updates instantly on all mobile devices.
  */
 
-const CACHE_NAME = "tavolara-pwa-v1";
-const STATIC_ASSETS = [
-  "/",
-  "/admin",
-  "/css/admin.css",
-  "/css/style.css",
-  "/js/admin.js",
-  "/js/app.js",
-  "/js/chart.umd.min.js",
-  "/manifest.json",
-  "/assets/favicon-48.png",
-  "/assets/favicon-192.png",
-  "/assets/favicon-512.png",
-  "/assets/apple-touch-icon.png"
-];
+const CACHE_NAME = "tavolara-pwa-v3";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
-  );
+  // Activate immediately
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
+  // Instantly purge all older caches and take control of all clients
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log("[SW] Eliminazione vecchia cache:", key);
             return caches.delete(key);
           }
         })
@@ -43,32 +29,35 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Dynamic API calls: Network-First (always fresh data, do not cache stale financial figures)
+  // Dynamic API calls: pure network (never serve stale financial calculations)
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return new Response(JSON.stringify({ error: true, message: "Offline: connessione non disponibile." }), {
-          headers: { "Content-Type": "application/json" }
-        });
+        return new Response(
+          JSON.stringify({ error: true, message: "Offline: connessione al server non disponibile." }),
+          { headers: { "Content-Type": "application/json" } }
+        );
       })
     );
     return;
   }
 
-  // Static Assets: Stale-While-Revalidate (instant load + background refresh)
+  // Network-First for HTML, CSS, JS and Assets:
+  // Always fetches the latest live version from Vercel.
+  // Falls back to cached version ONLY if completely offline.
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && event.request.method === "GET") {
-          const responseToCache = networkResponse.clone();
+          const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(event.request, responseClone);
           });
         }
         return networkResponse;
-      }).catch(() => cachedResponse);
-
-      return cachedResponse || fetchPromise;
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

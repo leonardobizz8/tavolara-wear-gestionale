@@ -2075,6 +2075,52 @@ document.addEventListener("DOMContentLoaded", () => {
     closeMobileSidebar();
   });
 
+  // Mobile Floating Action Button (FAB)
+  const fabContainer = document.getElementById("mobile-fab-container");
+  const fabMain = document.getElementById("mobile-fab-main");
+  fabMain?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    fabContainer?.classList.toggle("active");
+  });
+
+  document.getElementById("fab-add-income")?.addEventListener("click", () => {
+    fabContainer?.classList.remove("active");
+    openAddIncomeModal();
+  });
+
+  document.getElementById("fab-add-expense")?.addEventListener("click", () => {
+    fabContainer?.classList.remove("active");
+    openAddExpenseModal();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (fabContainer && !fabContainer.contains(e.target)) {
+      fabContainer.classList.remove("active");
+    }
+  });
+
+  // Force Update App button (clears Service Worker & HTTP caches)
+  document.getElementById("btn-force-update")?.addEventListener("click", async () => {
+    showToast("Aggiornamento dell'app in corso...");
+    if ("caches" in window) {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      } catch (err) {}
+    }
+    if ("serviceWorker" in navigator) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const reg of regs) {
+          await reg.unregister();
+        }
+      } catch (err) {}
+    }
+    setTimeout(() => {
+      window.location.href = window.location.pathname + "?t=" + Date.now();
+    }, 400);
+  });
+
   // 5. Time Period Filters
   document.querySelectorAll("#time-filter-control .segment-item").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -2297,12 +2343,33 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 13. Register PWA Service Worker (Mobile & Desktop Offline / Fast Cache)
+  // 13. Register PWA Service Worker with Automatic Live Updates
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch((err) => {
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        // Automatically check for new deployed versions
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                console.log("[PWA] Nuova versione rilevata. Ricarico l'applicazione...");
+                showToast("Nuovo aggiornamento installato! Ricarico...", "success");
+                setTimeout(() => window.location.reload(), 800);
+              }
+            });
+          }
+        });
+      }).catch((err) => {
         console.info("[PWA] Service Worker registration:", err);
       });
+    });
+
+    // Check for updates when user returns to the app
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        navigator.serviceWorker.getRegistration().then(reg => reg?.update());
+      }
     });
   }
 });

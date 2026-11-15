@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin.css?v=3.2">
   
   <!-- Local self-contained Chart.js -->
   <script src="/js/chart.umd.min.js"></script>
@@ -143,10 +143,15 @@
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" id="side-excel-stats">58 ordini · 1.420 €</div>
           </div>
 
-          <a href="/" target="_blank" class="apple-btn apple-btn-secondary apple-btn-sm" style="width: 100%; justify-content: space-between; margin-bottom: 8px;">
+          <a href="/modulo" target="_blank" class="apple-btn apple-btn-secondary apple-btn-sm" style="width: 100%; justify-content: space-between; margin-bottom: 8px;">
             <span>↗ Modulo Clienti</span>
             <span style="font-size: 11px; opacity: 0.6;">Online</span>
           </a>
+
+          <button type="button" class="apple-btn apple-btn-ghost apple-btn-sm" id="btn-force-update" style="width: 100%; justify-content: center; font-size: 11.5px; margin-bottom: 4px;" title="Forza il ricaricamento dell'ultima versione">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>Aggiorna App</span>
+          </button>
         </div>
       </div>
 
@@ -1345,6 +1350,23 @@
     </button>
   </nav>
 
+  <!-- MOBILE FLOATING ACTION BUTTON (SPEED DIAL) -->
+  <div class="mobile-fab-container" id="mobile-fab-container">
+    <div class="mobile-fab-actions" id="mobile-fab-actions">
+      <button type="button" class="mobile-fab-action-btn fab-income" id="fab-add-income">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>+ Entrata</span>
+      </button>
+      <button type="button" class="mobile-fab-action-btn fab-expense" id="fab-add-expense">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>+ Spesa</span>
+      </button>
+    </div>
+    <button type="button" class="mobile-fab-main" id="mobile-fab-main" aria-label="Aggiungi transazione">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" id="fab-icon-plus"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+
   <!-- TOAST CONTAINER -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -1352,6 +1374,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/js/supabaseClient.js"></script>
   <!-- App Logic -->
-  <script src="/js/admin.js"></script>
+  <script src="/js/admin.js?v=3.2"></script>
 </body>
 </html>

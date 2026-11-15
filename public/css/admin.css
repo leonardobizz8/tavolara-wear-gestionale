@@ -1564,10 +1564,25 @@ body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding: 2px 0;
-    flex-shrink: 0;
+    max-width: 60%;
   }
   .header-right::-webkit-scrollbar {
     display: none;
+  }
+  #btn-quick-add-income, #btn-quick-add-expense {
+    display: none !important;
+  }
+  #btn-open-excel-modal {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+  #header-excel-label {
+    display: none;
+  }
+  #btn-open-excel-modal::after {
+    content: "Excel";
+    margin-left: 3px;
   }
 
   .time-filter-control {
@@ -1771,6 +1786,88 @@ body {
   .mobile-nav-btn:active {
     transform: scale(0.92);
   }
+  /* MOBILE FLOATING ACTION BUTTON (SPEED DIAL) */
+  .mobile-fab-container {
+    display: block;
+    position: fixed;
+    right: 18px;
+    bottom: calc(var(--bottom-nav-height, 60px) + env(safe-area-inset-bottom, 0px) + 16px);
+    z-index: 1400;
+  }
+
+  .mobile-fab-main {
+    width: 52px;
+    height: 52px;
+    border-radius: 26px;
+    background: var(--claude-terracotta, #C4775B);
+    color: #FFFFFF;
+    border: none;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 18px rgba(196, 119, 91, 0.45);
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-fab-main:active {
+    transform: scale(0.92);
+  }
+  .mobile-fab-main svg {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .mobile-fab-container.active .mobile-fab-main svg {
+    transform: rotate(45deg);
+  }
+
+  .mobile-fab-actions {
+    position: absolute;
+    bottom: 62px;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .mobile-fab-container.active .mobile-fab-actions {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .mobile-fab-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(41, 40, 37, 0.16);
+    transition: transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-fab-action-btn:active {
+    transform: scale(0.94);
+  }
+  .mobile-fab-action-btn.fab-income {
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #C8E6C9;
+  }
+  .mobile-fab-action-btn.fab-expense {
+    background: #FFEBEE;
+    color: #C62828;
+    border: 1px solid #FFCDD2;
+  }
 }
 
 /* SMARTPHONES (< 480px) */
@@ -1789,6 +1886,9 @@ body {
     display: none !important;
   }
   .sidebar-backdrop {
+    display: none !important;
+  }
+  .mobile-fab-container {
     display: none !important;
   }
 }
