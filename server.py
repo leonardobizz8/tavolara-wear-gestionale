@@ -523,15 +523,23 @@ class TavolaraHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
         # -----------------------------
+        # API 404 CATCH-ALL (Never fall through to HTML 404)
+        # -----------------------------
+        if path.startswith("/api"):
+            send_error_json(self, f"Endpoint API non trovato: {path}", status=404)
+            return
+
+        # -----------------------------
         # STATIC SPA ROUTING
         # -----------------------------
-        # Default root and admin routes serve the GESTIONALE
-        if path in ["/", "/admin", "/admin/", "/admin/index.html", "/gestionale", "/dashboard", "/index.html"]:
-            self.serve_file(os.path.join(STATIC_DIR, "admin.html"), "text/html; charset=utf-8")
-            return
-        elif path in ["/modulo", "/ordina", "/modulo.html"] or path.startswith("/ordine/"):
-            # Customer ordering form
+        # Customer ordering form
+        if path in ["/modulo", "/ordina", "/modulo.html"] or path.startswith("/ordine/"):
             self.serve_file(os.path.join(STATIC_DIR, "modulo.html"), "text/html; charset=utf-8")
+            return
+
+        # All other non-file paths serve the GESTIONALE SPA
+        if path in ["/", "/admin", "/admin/", "/admin/index.html", "/gestionale", "/dashboard", "/index.html", "/login", "/overview", "/attivo", "/passivo", "/entrate", "/uscite", "/ordini", "/insights", "/settings"] or not os.path.splitext(path)[1]:
+            self.serve_file(os.path.join(STATIC_DIR, "admin.html"), "text/html; charset=utf-8")
             return
 
         super().do_GET()

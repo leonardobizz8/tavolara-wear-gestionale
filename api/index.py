@@ -58,5 +58,21 @@ class handler(TavolaraHandler):
         self._normalize_path()
         super().do_OPTIONS()
 
+    def send_error(self, code, message=None, explain=None):
+        """Override to always emit clean JSON errors on Vercel, never Python HTML error pages."""
+        try:
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            body = json.dumps({
+                "error": True,
+                "status": code,
+                "message": message or ("Endpoint non trovato" if code == 404 else "Errore server")
+            }).encode("utf-8")
+            self.wfile.write(body)
+        except Exception:
+            pass
+
     def log_message(self, format, *args):
         sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), format % args))

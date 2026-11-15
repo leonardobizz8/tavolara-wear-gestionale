@@ -1,17 +1,17 @@
 /**
- * Tavolara Wear — Service Worker (Always Fresh Network-First with Offline Fallback)
- * Ensures every GitHub/Vercel deploy updates instantly on all mobile devices.
+ * Tavolara Wear — Service Worker (Always Fresh Network-First with Instant Update)
+ * Ensures every GitHub/Vercel deploy updates immediately across all mobile devices.
  */
 
-const CACHE_NAME = "tavolara-pwa-v5";
+const CACHE_NAME = "tavolara-pwa-v7";
 
 self.addEventListener("install", (event) => {
-  // Activate immediately
+  // Take control immediately
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  // Instantly purge all older caches and take control of all clients
+  // Instantly purge all older caches and take control of all active tabs
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
@@ -24,6 +24,12 @@ self.addEventListener("activate", (event) => {
       );
     }).then(() => self.clients.claim())
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.action === "skipWaiting") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {
@@ -42,9 +48,25 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-First for HTML, CSS, JS and Assets:
-  // Always fetches the latest live version from Vercel.
-  // Falls back to cached version ONLY if completely offline.
+  // Navigation requests (HTML pages): ALWAYS network-first with cache fallback
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then(cached => cached || caches.match("/index.html")))
+    );
+    return;
+  }
+
+  // Static Assets (CSS, JS, Fonts, Images): Network-First
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {

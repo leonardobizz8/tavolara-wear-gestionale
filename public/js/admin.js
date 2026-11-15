@@ -2518,8 +2518,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 13. Register PWA Service Worker with Automatic Live Updates
   if ("serviceWorker" in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!refreshing) {
+        refreshing = true;
+        console.log("[PWA] Nuovo controller attivo. Ricarico l'applicazione...");
+        window.location.reload();
+      }
+    });
+
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("/sw.js").then((reg) => {
+        // Force check immediately
+        reg.update();
+
         // Automatically check for new deployed versions
         reg.addEventListener("updatefound", () => {
           const newWorker = reg.installing;
@@ -2528,7 +2540,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
                 console.log("[PWA] Nuova versione rilevata. Ricarico l'applicazione...");
                 showToast("Nuovo aggiornamento installato! Ricarico...", "success");
-                setTimeout(() => window.location.reload(), 800);
+                setTimeout(() => window.location.reload(), 600);
               }
             });
           }

@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "functions": {
     "api/index.py": {
       "includeFiles": "data/**"
@@ -8,13 +10,26 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py?__path__=$1" },
     { "source": "/api", "destination": "/api/index.py" },
+    { "source": "/modulo", "destination": "/modulo.html" },
+    { "source": "/modulo/(.*)", "destination": "/modulo.html" },
+    { "source": "/ordina", "destination": "/modulo.html" },
+    { "source": "/ordine/(.*)", "destination": "/modulo.html" },
     { "source": "/admin", "destination": "/index.html" },
     { "source": "/admin/(.*)", "destination": "/index.html" },
     { "source": "/gestionale", "destination": "/index.html" },
+    { "source": "/gestionale/(.*)", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/index.html" },
-    { "source": "/modulo", "destination": "/modulo.html" },
-    { "source": "/ordina", "destination": "/modulo.html" },
-    { "source": "/ordine/(.*)", "destination": "/modulo.html" }
+    { "source": "/login", "destination": "/index.html" },
+    { "source": "/overview", "destination": "/index.html" },
+    { "source": "/attivo", "destination": "/index.html" },
+    { "source": "/passivo", "destination": "/index.html" },
+    { "source": "/entrate", "destination": "/index.html" },
+    { "source": "/uscite", "destination": "/index.html" },
+    { "source": "/ordini", "destination": "/index.html" },
+    { "source": "/insights", "destination": "/index.html" },
+    { "source": "/settings", "destination": "/index.html" },
+    { "source": "/impostazioni", "destination": "/index.html" },
+    { "source": "/((?!api/|assets/|css/|js/|favicon|manifest|sw|modulo).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
